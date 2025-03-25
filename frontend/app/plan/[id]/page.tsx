@@ -137,7 +137,7 @@ export default function PlanDetail() {
       const generatedText = data.candidates[0].content.parts[0].text;
       
       // 提取JSON
-      const jsonMatch = generatedText.match(/\{.*\}/s);
+      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       } else {
