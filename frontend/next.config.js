@@ -10,6 +10,8 @@ const nextConfig = {
       },
     ];
   },
+  // 静态导出选项
+  output: 'standalone',
   // 优化构建
   swcMinify: true,
 };
