@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { Document, Page } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { LatexRenderer } from '../components/LatexRenderer';
 
 export default function PaperGenerator() {
   const [researchTopic, setResearchTopic] = useState('');
@@ -11,6 +15,10 @@ export default function PaperGenerator() {
   const [previewMode, setPreviewMode] = useState(false);
   const [language, setLanguage] = useState('english');
   const fileDownloadRef = useRef<HTMLAnchorElement>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [numPages, setNumPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isCompiling, setIsCompiling] = useState(false);
 
   // 生成论文
   const generatePaper = async () => {
@@ -196,53 +204,77 @@ opportunities for innovative research and practical applications.
     const isEnglish = language.toLowerCase() === 'english';
     
     return isEnglish ? 
-      `You are an expert academic researcher with extensive knowledge in ${topic} and academic writing. Please generate a complete IEEE-formatted LaTeX paper about "${topic}".
+      `You are a leading researcher and professor in the field of ${topic} with numerous publications in top journals. Create a complete, innovative IEEE-formatted LaTeX paper on "${topic}" that demonstrates original thinking and novel approaches.
 
 REQUIREMENTS:
-1. The paper should be formatted for an IEEE conference
-2. Include the following sections:
-   - Title (creative and descriptive for ${topic})
-   - Author information (Use "ResearchGPT" as author)
-   - Abstract
-   - Keywords
-   - Introduction
-   - Background/Related Work
-   - Methodology
-   - Results/Findings
-   - Discussion
-   - Conclusion
-   - References (at least 8 realistic, recent references)
-3. Include proper LaTeX formatting with IEEE template
-4. Add several mathematical equations where appropriate
-5. Ensure the content is academically rigorous, detailed and insightful
-6. Use proper IEEE citation format with \\cite{} commands
-7. The paper should be approximately 5-6 pages when compiled
+1. The paper MUST be comprehensive (5-6 pages when compiled) with significant technical depth
+2. Format for IEEE conference with proper structure:
+   - Title (creative, specific, and attention-grabbing)
+   - Author information (Use "ResearchGPT AI Research Team")
+   - Abstract (concise overview highlighting novelty)
+   - Keywords (5-7 relevant keywords)
+   - Introduction (problem context, motivation, and significance)
+   - Literature Review/Background (thorough analysis of existing work)
+   - Methodology (detailed, innovative approach with justifications)
+   - Mathematical Framework (include at least 4-5 non-trivial equations with explanations)
+   - Experimental Setup (comprehensive description of data/parameters)
+   - Results Analysis (detailed discussion with comparative analysis)
+   - Discussion (implications, limitations, theoretical contributions)
+   - Conclusion (summarize contributions and future work)
+   - References (15+ realistic, recent references with proper IEEE formatting)
 
-IMPORTANT: Provide ONLY the complete LaTeX code without any explanations. Start with \\documentclass and end with \\end{document}.` 
+3. CRITICAL REQUIREMENTS:
+   - Content must be ORIGINAL and INNOVATIVE - propose new methods or frameworks
+   - Include at least 2 complex diagrams described in LaTeX (using tikz or similar)
+   - Add detailed tables with realistic data
+   - Use proper academic language and specialized terminology
+   - Incorporate mathematical notation extensively (equations, theorems, lemmas)
+   - Provide substantive analysis that demonstrates expert knowledge
+   - Ensure logical flow between sections with proper transitions
+
+4. FORMAT REQUIREMENTS:
+   - Use proper LaTeX commands and IEEE template elements
+   - Include \\cite{} commands throughout the text
+   - Structure document with appropriate sectioning
+   - Format must be complete and compilable
+
+OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or comments about the code itself. Start with \\documentclass and end with \\end{document}.`
       : 
-      `你是一位在${topic}领域具有丰富知识和学术写作经验的专家研究员。请生成一篇完整的IEEE格式LaTeX论文，主题是"${topic}"。
+      `你是${topic}领域的顶尖研究者和教授，在顶级期刊发表过多篇论文。请创建一篇完整、创新的IEEE格式LaTeX论文，主题是"${topic}"，展示原创思维和新颖方法。
 
 要求:
-1. 论文应采用IEEE会议格式
-2. 包含以下部分:
-   - 标题（创意且能描述${topic}的核心内容）
-   - 作者信息（使用"ResearchGPT"作为作者）
-   - 摘要
-   - 关键词
-   - 引言
-   - 背景/相关工作
-   - 方法论
-   - 结果/发现
-   - 讨论
-   - 结论
-   - 参考文献（至少8个真实、近期的参考文献）
-3. 使用正确的LaTeX格式和IEEE模板
-4. 在适当位置添加数学公式
-5. 确保内容学术严谨、详细且有见解
-6. 使用IEEE引用格式，包含\\cite{}命令
-7. 编译后的论文应约为5-6页
+1. 论文必须全面（编译后5-6页）且具有显著的技术深度
+2. 按IEEE会议格式构建，结构包括:
+   - 标题（创意性强、具体且吸引人）
+   - 作者信息（使用"ResearchGPT AI研究团队"）
+   - 摘要（简明概述，突出创新点）
+   - 关键词（5-7个相关关键词）
+   - 引言（问题背景、研究动机和重要性）
+   - 文献综述/背景（现有工作的全面分析）
+   - 方法论（详细、创新的方法及其合理性）
+   - 数学框架（至少包含4-5个非平凡方程及解释）
+   - 实验设置（数据/参数的全面描述）
+   - 结果分析（详细讨论并进行比较分析）
+   - 讨论（影响、局限性、理论贡献）
+   - 结论（总结贡献和未来工作）
+   - 参考文献（15+个真实、近期参考文献，使用IEEE格式）
 
-重要：只提供完整的LaTeX代码，不要有任何解释。从\\documentclass开始，以\\end{document}结束。`;
+3. 关键要求:
+   - 内容必须原创且创新 - 提出新方法或框架
+   - 包含至少2个用LaTeX描述的复杂图表（使用tikz或类似工具）
+   - 添加包含真实数据的详细表格
+   - 使用适当的学术语言和专业术语
+   - 广泛使用数学符号（方程式、定理、引理）
+   - 提供展示专业知识的实质性分析
+   - 确保各部分之间逻辑流畅，有适当过渡
+
+4. 格式要求:
+   - 使用正确的LaTeX命令和IEEE模板元素
+   - 在整个文本中包含\\cite{}命令
+   - 使用适当的分节结构化文档
+   - 格式必须完整且可编译
+
+输出格式：只提供完整的LaTeX代码，不要包含关于代码本身的任何解释或评论。从\\documentclass开始，到\\end{document}结束。`;
   }
 
   // 添加 LaTeX 内容提取函数
@@ -259,6 +291,37 @@ IMPORTANT: Provide ONLY the complete LaTeX code without any explanations. Start 
       latex: cleanedText.trim()
     };
   }
+
+  // 添加编译函数
+  const compileToPdf = async () => {
+    if (!latexContent) return;
+    
+    setIsCompiling(true);
+    try {
+      // 使用 Latex.js 或发送到后端编译服务
+      const response = await fetch('/api/compile-latex', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latex: latexContent }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`编译失败: ${response.status}`);
+      }
+      
+      // 获取PDF内容
+      const pdfBlob = await response.blob();
+      setPdfBlob(pdfBlob);
+      setPreviewMode(true);
+    } catch (error) {
+      console.error('编译PDF时出错:', error);
+      alert('PDF编译失败，请检查LaTeX代码');
+    } finally {
+      setIsCompiling(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -368,13 +431,70 @@ IMPORTANT: Provide ONLY the complete LaTeX code without any explanations. Start 
 
               {previewMode ? (
                 <div className="bg-white p-8 border rounded-lg shadow-md">
-                  <p className="text-gray-600 mb-4">
-                    预览功能需要服务器端渲染或使用 LaTeX 渲染库。在实际环境中，
-                    这里将显示生成的PDF预览。
-                  </p>
-                  <div className="border p-4 bg-gray-50 rounded">
-                    <pre className="whitespace-pre-wrap">{latexContent}</pre>
-                  </div>
+                  {pdfBlob ? (
+                    <div className="flex flex-col">
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <button 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage <= 1}
+                            className="px-3 py-1 bg-gray-200 rounded mr-2 disabled:opacity-50"
+                          >
+                            上一页
+                          </button>
+                          <span className="mx-2">
+                            {currentPage} / {numPages}
+                          </span>
+                          <button 
+                            onClick={() => setCurrentPage(p => Math.min(numPages, p + 1))}
+                            disabled={currentPage >= numPages}
+                            className="px-3 py-1 bg-gray-200 rounded ml-2 disabled:opacity-50"
+                          >
+                            下一页
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const pdfUrl = URL.createObjectURL(pdfBlob);
+                            window.open(pdfUrl, '_blank');
+                          }}
+                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                          在新标签打开
+                        </button>
+                      </div>
+                      
+                      <div className="border rounded overflow-auto" style={{ height: '70vh' }}>
+                        <Document
+                          file={URL.createObjectURL(pdfBlob)}
+                          onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                        >
+                          <Page 
+                            pageNumber={currentPage} 
+                            scale={1.5}
+                            renderTextLayer={true}
+                            renderAnnotationLayer={true}
+                          />
+                        </Document>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-8">
+                      <p className="text-gray-600 mb-4">
+                        LaTeX预览模式 - 点击下方按钮编译生成PDF
+                      </p>
+                      <button
+                        onClick={compileToPdf}
+                        disabled={isCompiling}
+                        className={`px-4 py-2 rounded ${isCompiling ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                      >
+                        {isCompiling ? '编译中...' : '编译PDF'}
+                      </button>
+                      <div className="mt-6 border p-4 bg-gray-50 rounded w-full">
+                        <LatexRenderer content={latexContent} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="border rounded-lg overflow-hidden shadow-md">

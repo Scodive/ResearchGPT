@@ -26,82 +26,341 @@ export default function PlanDetail() {
   const id = params.id as string;
   const [isLoading, setIsLoading] = useState(true);
   const [plan, setPlan] = useState<ResearchPlanDetail | null>(null);
+  const [originalPlan, setOriginalPlan] = useState<ResearchPlanDetail | null>(null); // 保存原始计划
   const [activeTab, setActiveTab] = useState('overview');
+  const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: '我已经为您生成了一个研究计划。您对这个计划有什么问题或建议？我可以帮您修改或完善计划的任何部分。' }
+  ]);
+  const [userMessage, setUserMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    // 模拟API调用，获取研究计划详情
-    setTimeout(() => {
-      // 这里应该是实际的API调用
-      const mockPlan: ResearchPlanDetail = {
-        id,
-        title: '人工智能领域中深度学习新方法的研究',
-        description: '通过改进现有深度学习架构，解决当前AI领域中的性能瓶颈问题',
-        background: `深度学习在过去几年取得了巨大的进展，但在处理复杂、非结构化数据时仍然面临挑战。
-          现有研究表明，注意力机制和图神经网络在提高模型性能方面有很大潜力，但这两者的结合尚未得到充分探索。
-          
-          本研究旨在开发一种新的深度学习架构，结合注意力机制和图神经网络，以提高模型在处理复杂数据时的性能。`,
-        methodology: `本研究将采用以下方法：
-          
-          1. 文献综述：全面梳理现有的注意力机制和图神经网络研究，识别潜在的结合点
-          2. 模型设计：设计一种新的深度学习架构，将注意力机制与图神经网络结合
-          3. 实验评估：在多个数据集上评估所提出的模型，包括图像分类、自然语言处理和图数据分析
-          4. 比较分析：与现有的最先进模型进行比较，分析性能差异和改进空间`,
-        expectedResults: `预期该研究将产生以下成果：
-          
-          1. 一种新的深度学习架构，结合注意力机制和图神经网络
-          2. 在多个benchmark数据集上的性能评估结果
-          3. 对模型性能的理论分析和解释
-          4. 开源实现和文档，方便其他研究者复现和扩展`,
-        timeline: [
-          {
-            phase: '阶段1：准备和文献综述',
-            duration: '2个月',
-            activities: [
-              '收集和分析相关文献',
-              '识别研究空白和机会',
-              '制定详细的研究计划'
-            ]
-          },
-          {
-            phase: '阶段2：模型设计与实现',
-            duration: '3个月',
-            activities: [
-              '设计新的深度学习架构',
-              '实现模型原型',
-              '进行初步测试和调整'
-            ]
-          },
-          {
-            phase: '阶段3：实验评估',
-            duration: '4个月',
-            activities: [
-              '在多个数据集上评估模型性能',
-              '与现有模型进行比较',
-              '分析实验结果'
-            ]
-          },
-          {
-            phase: '阶段4：撰写论文和总结',
-            duration: '3个月',
-            activities: [
-              '撰写研究论文',
-              '准备开源代码和文档',
-              '总结研究成果和未来方向'
-            ]
-          }
-        ],
-        resources: [
-          '高性能计算资源（GPU集群）',
-          '大规模数据集（如ImageNet、COCO、GLUE等）',
-          '开源深度学习框架（PyTorch或TensorFlow）',
-          '图数据处理库（如DGL或PyG）'
-        ],
-        tags: ['深度学习', '注意力机制', '图神经网络', '人工智能']
-      };
-      setPlan(mockPlan);
-      setIsLoading(false);
-    }, 1000);
+    if (id) {
+      // 根据ID生成详细研究计划
+      generateDetailedPlan(id)
+        .then(detailedPlan => {
+          setPlan(detailedPlan);
+          setOriginalPlan(JSON.parse(JSON.stringify(detailedPlan))); // 深拷贝保存原始计划
+          setIsLoading(false);
+        })
+        .catch(error => {
+          console.error('获取计划详情失败:', error);
+          setIsLoading(false);
+        });
+    }
   }, [id]);
+
+  // 使用Gemini API生成详细研究计划
+  async function generateDetailedPlan(planId: string) {
+    // 在实际应用中，先尝试从缓存或服务器获取存储的计划
+    // 如果不存在，使用Gemini生成
+    
+    const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
+    const MODEL = 'gemini-1.5-flash-latest';
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+    
+    // 从URL或存储中获取基本信息
+    const urlParams = new URLSearchParams(window.location.search);
+    const title = urlParams.get('title') || `研究计划 ${planId}`;
+    const description = urlParams.get('desc') || '这是一个研究计划的详细描述';
+    const tagsStr = urlParams.get('tags') || '研究,学术';
+    const tags = tagsStr.split(',');
+    
+    // 构建详细计划生成的prompt
+    const prompt = `作为研究方法学专家，请基于以下研究计划的基本信息，生成一个全面且结构化的详细研究计划：
+
+标题: "${title}"
+基本描述: "${description}"
+关键词: ${tags.join(', ')}
+
+请提供以下详细部分：
+1. 研究背景与动机：当前领域状态、挑战和研究计划的重要性
+2. 研究目标：3-5个具体可测量的目标
+3. 文献综述：关键相关工作概述，指出空白和局限性
+4. 研究方法：详细的方法论、实验设计和分析框架
+5. 预期成果：预期的研究结果和贡献
+6. 时间表：6-12个月的详细研究阶段和里程碑
+7. 所需资源：人力、技术和其他资源需求
+
+在回答中，为每个部分提供详细内容，确保内容与研究主题密切相关，并展示对该领域的专业理解。以JSON格式输出，结构如下：
+
+{
+  "id": "${planId}",
+  "title": "...",
+  "description": "...",
+  "tags": ["标签1", "标签2", "..."],
+  "background": "...",
+  "objectives": ["目标1", "目标2", ...],
+  "literature": "...",
+  "methodology": "...",
+  "expected_outcomes": "...",
+  "timeline": [
+    {"phase": "阶段1", "duration": "X周", "activities": "..."},
+    ...
+  ],
+  "resources": "..."
+}
+
+只输出JSON，不要有其他文字。`;
+    
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.4,
+            topP: 0.8,
+            topK: 40,
+            maxOutputTokens: 8192,
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API响应错误: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const generatedText = data.candidates[0].content.parts[0].text;
+      
+      // 提取JSON
+      const jsonMatch = generatedText.match(/\{.*\}/s);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('无法解析API返回的JSON');
+      }
+    } catch (error) {
+      console.error('生成详细计划失败:', error);
+      // 返回基本计划作为备用
+      return {
+        id: planId,
+        title: title,
+        description: description,
+        tags: tags,
+        background: '无法生成详细背景信息',
+        objectives: ['完成研究', '发表论文'],
+        literature: '无法生成文献综述',
+        methodology: '无法生成研究方法',
+        expected_outcomes: '无法生成预期成果',
+        timeline: [
+          {phase: '计划阶段', duration: '4周', activities: '文献综述和计划制定'}
+        ],
+        resources: '标准研究资源'
+      };
+    }
+  }
+
+  // 处理发送消息
+  const handleSendMessage = async () => {
+    if (!userMessage.trim() || isSending || !plan) return;
+    
+    const newMessage = { role: 'user', content: userMessage };
+    setMessages(prev => [...prev, newMessage]);
+    setUserMessage('');
+    setIsSending(true);
+    
+    try {
+      // 使用Gemini API回答用户问题
+      const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
+      const MODEL = 'gemini-1.5-flash-latest';
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+      
+      // 构建对话历史供AI参考
+      const conversationHistory = messages.map(msg => 
+        `${msg.role === 'user' ? '用户' : 'AI助手'}: ${msg.content}`
+      ).join('\n\n');
+      
+      // 构建对话的prompt
+      const prompt = `你是一位专业的研究计划顾问，正在帮助用户完善以下研究计划。
+
+当前研究计划: 
+${JSON.stringify(plan, null, 2)}
+
+对话历史:
+${conversationHistory}
+
+用户的最新问题或建议: "${userMessage}"
+
+请提供以下两部分内容:
+1. 针对用户问题的专业回答（200-300字）
+2. 如果用户建议修改研究计划的特定部分，请提供具体的修改建议，格式为JSON对象，例如:
+{"action": "update", "field": "要修改的字段", "content": "新内容"}
+
+例如字段可以是"title", "description", "background", "methodology", "objectives", "timeline", "resources"等。
+
+如果用户没有要求修改计划，则只返回回答，不需要返回JSON对象。
+如果需要修改计划，先回答用户问题，然后另起一行，以"==PLAN_UPDATE=="开头，之后提供JSON更新对象。
+
+确保你的回答对用户友好、专业且有实质性内容，并且任何修改建议都与研究主题相关。`;
+      
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.8,
+            topK: 40,
+            maxOutputTokens: 2048,
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API响应错误: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      let assistantResponse = data.candidates[0].content.parts[0].text;
+      
+      // 检查是否包含计划更新
+      const updateParts = assistantResponse.split('==PLAN_UPDATE==');
+      const userFacingResponse = updateParts[0].trim();
+      
+      // 添加助手回复到对话
+      setMessages(prev => [...prev, { role: 'assistant', content: userFacingResponse }]);
+      
+      // 如果有计划更新指令
+      if (updateParts.length > 1) {
+        try {
+          setIsUpdatingPlan(true);
+          const updateJson = updateParts[1].trim();
+          const updateData = JSON.parse(updateJson);
+          
+          if (updateData.action === 'update' && updateData.field && updateData.content) {
+            // 更新计划
+            const updatedPlan = { ...plan };
+            
+            // 特殊处理嵌套字段，如timeline.0.activities
+            if (updateData.field.includes('.')) {
+              const fieldParts = updateData.field.split('.');
+              let target = updatedPlan as any;
+              
+              // 导航到嵌套对象的倒数第二层
+              for (let i = 0; i < fieldParts.length - 1; i++) {
+                const part = fieldParts[i];
+                if (!isNaN(Number(part))) {
+                  // 处理数组索引
+                  target = target[Number(part)];
+                } else {
+                  target = target[part];
+                }
+              }
+              
+              // 更新最后一层
+              const lastField = fieldParts[fieldParts.length - 1];
+              target[lastField] = updateData.content;
+            } else {
+              // 简单字段直接更新
+              (updatedPlan as any)[updateData.field] = updateData.content;
+            }
+            
+            setPlan(updatedPlan);
+            setHasChanges(true);
+            
+            // 添加系统消息通知用户计划已更新
+            setTimeout(() => {
+              setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: `✅ 已根据您的建议更新了研究计划的${getFieldDisplayName(updateData.field)}部分。` 
+              }]);
+              setIsUpdatingPlan(false);
+            }, 1000);
+          }
+        } catch (error) {
+          console.error('解析或应用更新失败:', error);
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: '抱歉，我无法应用您建议的更改。请再次尝试或使用更清晰的说明。' 
+          }]);
+          setIsUpdatingPlan(false);
+        }
+      } else {
+        setIsUpdatingPlan(false);
+      }
+    } catch (error) {
+      console.error('获取回答失败:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '抱歉，我无法处理您的请求。请稍后再试。' 
+      }]);
+      setIsUpdatingPlan(false);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // 将字段名转换为显示名
+  const getFieldDisplayName = (field: string): string => {
+    const fieldMap: Record<string, string> = {
+      'title': '标题',
+      'description': '描述',
+      'background': '研究背景',
+      'methodology': '研究方法',
+      'objectives': '研究目标',
+      'timeline': '时间表',
+      'resources': '资源',
+      'expected_outcomes': '预期成果'
+    };
+    
+    return fieldMap[field] || field;
+  };
+
+  // 重置计划到原始状态
+  const resetPlan = () => {
+    if (originalPlan) {
+      setPlan(JSON.parse(JSON.stringify(originalPlan)));
+      setHasChanges(false);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '已将研究计划重置为原始状态。' 
+      }]);
+    }
+  };
+
+  // 保存计划
+  const savePlan = async () => {
+    // 在实际应用中，这里应该调用API保存计划
+    // 模拟保存成功
+    setOriginalPlan(JSON.parse(JSON.stringify(plan)));
+    setHasChanges(false);
+    setMessages(prev => [...prev, { 
+      role: 'assistant', 
+      content: '✅ 研究计划已成功保存！' 
+    }]);
+  };
+
+  // 切换部分展开/折叠
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => 
+      prev.includes(section) 
+        ? prev.filter(s => s !== section) 
+        : [...prev, section]
+    );
+  };
 
   if (isLoading) {
     return (
@@ -146,10 +405,29 @@ export default function PlanDetail() {
       {/* 主内容区 */}
       <main className="flex-grow container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">{plan.title}</h2>
-          <p className="text-xl text-gray-600 mb-4">{plan.description}</p>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-3xl font-bold">{plan?.title}</h2>
+            {hasChanges && (
+              <div className="flex space-x-3">
+                <button
+                  onClick={resetPlan}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800"
+                >
+                  取消修改
+                </button>
+                <button
+                  onClick={savePlan}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white"
+                >
+                  保存更改
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <p className="text-xl text-gray-600 mb-4">{plan?.description}</p>
           <div className="flex flex-wrap gap-2 mb-6">
-            {plan.tags.map((tag) => (
+            {plan?.tags.map((tag) => (
               <span
                 key={tag}
                 className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
@@ -255,27 +533,60 @@ export default function PlanDetail() {
           </div>
         </div>
 
+        {/* 增强的对话区域 */}
         <div className="mt-8 mb-4">
-          <h3 className="text-xl font-semibold mb-4">与AI讨论这个研究计划</h3>
+          <h3 className="text-xl font-semibold mb-4">与AI讨论并优化这个研究计划</h3>
           <div className="bg-white p-6 rounded-lg shadow-md">
+            {isUpdatingPlan && (
+              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+                <div className="flex items-center">
+                  <svg className="animate-spin h-5 w-5 mr-3 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p className="text-yellow-700">正在根据您的建议更新研究计划...</p>
+                </div>
+              </div>
+            )}
+            
             <div className="mb-4 max-h-80 overflow-y-auto border rounded-lg p-4">
               <div className="space-y-4">
-                <div className="bg-gray-100 p-3 rounded-lg">
-                  <p className="font-semibold text-gray-600">ResearchGPT</p>
-                  <p>我已经为您生成了一个研究计划。您对这个计划有什么问题或建议？</p>
-                </div>
-                {/* 这里可以添加更多对话内容 */}
+                {messages.map((message, index) => (
+                  <div key={index} className={`${message.role === 'user' ? 'bg-gray-100' : 'bg-blue-100'} p-3 rounded-lg`}>
+                    <p className="font-semibold text-gray-600">{message.role === 'user' ? '您' : 'ResearchGPT'}</p>
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="flex">
-              <input
-                type="text"
-                placeholder="输入您的问题或建议..."
-                className="flex-grow px-4 py-2 rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+            
+            <div className="flex items-start">
+              <textarea
+                placeholder="输入您的问题或建议...例如：'我觉得研究方法需要更具体'、'能否添加一个关于数据收集的阶段？'"
+                className="flex-grow px-4 py-2 rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 h-20 resize-none"
+                value={userMessage}
+                onChange={(e) => setUserMessage(e.target.value)}
+                disabled={isSending || isUpdatingPlan}
               />
-              <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-r-lg">
-                发送
+              <button
+                onClick={handleSendMessage}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-r-lg h-20"
+                disabled={isSending || isUpdatingPlan || !userMessage.trim()}
+              >
+                {isSending ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    处理中
+                  </span>
+                ) : '发送'}
               </button>
+            </div>
+            
+            <div className="mt-3 text-sm text-gray-500">
+              <p>提示：您可以要求AI修改任何部分的计划内容，例如研究方法、时间表或资源需求。</p>
             </div>
           </div>
         </div>

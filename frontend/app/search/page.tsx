@@ -21,34 +21,116 @@ function SearchContent() {
 
   useEffect(() => {
     if (query) {
-      // 模拟API调用，获取研究计划
-      setTimeout(() => {
-        // 这里应该是实际的API调用
-        const mockPlans = [
-          {
-            id: '1',
-            title: `${query}领域中深度学习新方法的研究`,
-            description: `通过改进现有深度学习架构，解决当前${query}领域中的性能瓶颈问题`,
-            tags: ['深度学习', '人工智能', query],
-          },
-          {
-            id: '2',
-            title: `基于知识图谱的${query}数据分析框架`,
-            description: `构建专门针对${query}领域的知识图谱，提高数据关联分析效率`,
-            tags: ['知识图谱', '数据分析', query],
-          },
-          {
-            id: '3',
-            title: `${query}领域中的不确定性量化研究`,
-            description: `研究${query}中的不确定性来源并提出量化方法，提高模型可解释性`,
-            tags: ['不确定性', '可解释AI', query],
-          },
-        ];
-        setResearchPlans(mockPlans);
-        setIsLoading(false);
-      }, 1500);
+      setIsLoading(true);
+      // 使用Gemini API生成研究计划
+      generateResearchPlans(query)
+        .then(plans => {
+          setResearchPlans(plans);
+          setIsLoading(false);
+        })
+        .catch(error => {
+          console.error('生成研究计划失败:', error);
+          // 使用备用模拟计划
+          const mockPlans = [
+            {
+              id: '1',
+              title: `${query}领域中深度学习新方法的研究`,
+              description: `通过改进现有深度学习架构，解决当前${query}领域中的性能瓶颈问题`,
+              tags: ['深度学习', '人工智能', query],
+            },
+            {
+              id: '2',
+              title: `基于知识图谱的${query}数据分析框架`,
+              description: `构建专门针对${query}领域的知识图谱，提高数据关联分析效率`,
+              tags: ['知识图谱', '数据分析', query],
+            },
+            {
+              id: '3',
+              title: `${query}领域中的不确定性量化研究`,
+              description: `研究${query}中的不确定性来源并提出量化方法，提高模型可解释性`,
+              tags: ['不确定性', '可解释AI', query],
+            },
+          ];
+          setResearchPlans(mockPlans);
+          setIsLoading(false);
+        });
     }
   }, [query]);
+
+  // 直接从前端调用Gemini API生成研究计划
+  async function generateResearchPlans(topic: string): Promise<ResearchPlan[]> {
+    const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
+    const MODEL = 'gemini-1.5-flash-latest';
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+    
+    // 生成研究计划的prompt
+    const prompt = `作为研究主题探索专家，针对"${topic}"领域，创建4个有创新性和可行性的研究计划。
+    
+    每个研究计划必须包含：
+    1. 一个引人注目且具体的标题
+    2. 详细的研究描述（至少100字），包括研究动机、方法和潜在贡献
+    3. 3-5个相关标签/关键词
+    
+    这些研究计划应该：
+    - 代表不同研究角度和方法
+    - 包含创新元素而非仅仅复述现有工作
+    - 有明确的学术或实际价值
+    - 可以作为研究项目或论文的基础
+    
+    以JSON格式输出，结构如下：
+    [
+      {
+        "id": "1",
+        "title": "...",
+        "description": "...",
+        "tags": ["标签1", "标签2", "..."]
+      },
+      ...更多计划
+    ]
+    只输出JSON，不要有其他文字。`;
+    
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.8,
+            topK: 40,
+            maxOutputTokens: 4096,
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API响应错误: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const generatedText = data.candidates[0].content.parts[0].text;
+      
+      // 提取JSON
+      const jsonMatch = generatedText.match(/\[\s*\{.*\}\s*\]/s);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('无法解析API返回的JSON');
+      }
+    } catch (error) {
+      console.error('调用Gemini API失败:', error);
+      throw error;
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
