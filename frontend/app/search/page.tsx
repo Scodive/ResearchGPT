@@ -144,44 +144,23 @@ function SearchContent() {
     <div className="min-h-screen flex flex-col">
       {/* 头部导航 */}
       <header className="bg-white shadow-sm">
-        <div className="container mx-auto py-4 flex justify-between items-center">
+        <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600">
             <Link href="/">ResearchGPT</Link>
           </h1>
-          <div className="w-1/2">
-            <form onSubmit={handleSearch} className="flex">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="输入研究领域或关键词..."
-                className="w-full px-4 py-2 rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button 
-                type="submit"
-                className="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600 transition-colors duration-300"
-                disabled={isLoading}
-              >
-                {isLoading ? '生成中...' : '探索'}
-              </button>
-            </form>
-          </div>
           <nav>
-            <ul className="flex space-x-6">
+            <ul className="flex space-x-4 md:space-x-6">
               <li>
-                <Link href="/" className="hover:text-blue-500">
-                  首页
-                </Link>
+                <Link href="/" className="hover:text-blue-500">首页</Link>
               </li>
               <li>
-                <Link href="/paper" className="hover:text-blue-500">
-                  AI论文生成
-                </Link>
+                <Link href="/search" className="hover:text-blue-500 text-blue-600 font-medium">研究探索</Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-blue-500">
-                  关于
-                </Link>
+                <Link href="/paper" className="hover:text-blue-500">AI论文生成</Link>
+              </li>
+              <li>
+                <Link href="/about" className="hover:text-blue-500">关于</Link>
               </li>
             </ul>
           </nav>
@@ -190,30 +169,74 @@ function SearchContent() {
 
       {/* 主内容区 */}
       <main className="flex-grow container mx-auto py-8 px-4">
-        <h2 className="text-2xl font-bold mb-6">"{searchQuery}" 的研究计划</h2>
+        {/* 搜索区域 - 移到主内容区顶部 */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800">探索研究方向</h2>
+          <form onSubmit={handleSearch} className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="输入研究领域或关键词..."
+                className="flex-grow px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              />
+              <button 
+                type="submit"
+                className="w-full md:w-auto px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-300 flex items-center justify-center shadow-sm"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    生成中...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    探索
+                  </span>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
 
+        {/* 研究计划列表 */}
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : researchPlans.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {researchPlans.map((plan) => (
-              <Link href={`/plan/${encodeURIComponent(plan.title)}`} key={plan.id} className="block">
-                <div className="modern-card h-full p-6 flex flex-col">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-semibold text-blue-700 line-clamp-2">{plan.title}</h3>
-                    <span className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full">
-                      {plan.tags[0]}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 mb-4 line-clamp-3">{plan.description}</p>
-                  <div className="mt-auto">
-                    <div className="inline-flex items-center text-sm text-blue-600 font-medium">
-                      查看详情
-                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                      </svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {researchPlans.map(plan => (
+              <Link href={`/plan/${encodeURIComponent(plan.title)}`} key={plan.id}>
+                <div className="modern-card h-full p-6 hover:transform hover:scale-[1.02] transition-all duration-300">
+                  <div className="flex flex-col h-full">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-3 line-clamp-2">
+                        {plan.title}
+                      </h3>
+                      <p className="text-gray-600 mb-4 line-clamp-3 text-sm md:text-base">
+                        {plan.description}
+                      </p>
+                    </div>
+                    <div className="mt-auto">
+                      <div className="flex flex-wrap gap-2">
+                        {plan.tags.map((tag, index) => (
+                          <span 
+                            key={index}
+                            className="bg-blue-50 text-blue-600 text-xs px-2.5 py-1 rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -222,22 +245,38 @@ function SearchContent() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <p className="text-lg text-gray-600 mb-4">输入您感兴趣的研究领域，点击"探索"按钮生成研究计划</p>
-            {query && <p className="text-gray-500">未找到与"{query}"相关的研究计划</p>}
+            <div className="max-w-md mx-auto">
+              <p className="text-lg text-gray-600 mb-4">
+                输入您感兴趣的研究领域，点击"探索"按钮生成研究计划
+              </p>
+              {query && (
+                <p className="text-gray-500">
+                  未找到与"{query}"相关的研究计划
+                </p>
+              )}
+            </div>
           </div>
         )}
       </main>
 
       {/* 底部 */}
-      <footer className="bg-gray-800 text-white py-8">
+      <footer className="bg-gray-800 text-white py-8 mt-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
               <h3 className="text-xl font-bold">ResearchGPT</h3>
               <p className="text-gray-300">智能研究助手</p>
             </div>
-            <div>
+            <div className="flex flex-col items-center md:items-end">
               <p>© {new Date().getFullYear()} ResearchGPT. 保留所有权利。</p>
+              <div className="mt-2 text-sm">
+                <Link href="/about" className="text-gray-300 hover:text-white mr-4">
+                  关于
+                </Link>
+                <Link href="/privacy" className="text-gray-300 hover:text-white">
+                  隐私协议
+                </Link>
+              </div>
             </div>
           </div>
         </div>

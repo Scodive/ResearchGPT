@@ -319,6 +319,17 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
                   提示：您可以下载此LaTeX文件并使用<a href="https://www.overleaf.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Overleaf</a>等在线LaTeX编辑器进行编译和微调。
                 </p>
               </div>
+
+              <div className="mt-4 bg-blue-50 p-4 rounded-lg flex items-start">
+                <svg className="w-6 h-6 text-blue-500 mr-3 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm text-gray-700">
+                    您可以使用 <a href="https://www.overleaf.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Overleaf</a> 在线编辑器打开下载的 LaTeX 文件。Overleaf 提供实时预览和协作功能，是编辑 LaTeX 文档的理想选择。
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
