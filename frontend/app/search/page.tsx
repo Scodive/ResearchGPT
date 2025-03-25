@@ -16,46 +16,54 @@ interface ResearchPlan {
 function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams?.get('q') || '';
-  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState(query);
+  const [isLoading, setIsLoading] = useState(false);
   const [researchPlans, setResearchPlans] = useState<ResearchPlan[]>([]);
 
   useEffect(() => {
     if (query) {
-      setIsLoading(true);
-      // 使用Gemini API生成研究计划
-      generateResearchPlans(query)
-        .then(plans => {
-          setResearchPlans(plans);
-          setIsLoading(false);
-        })
-        .catch(error => {
-          console.error('生成研究计划失败:', error);
-          // 使用备用模拟计划
-          const mockPlans = [
-            {
-              id: '1',
-              title: `${query}领域中深度学习新方法的研究`,
-              description: `通过改进现有深度学习架构，解决当前${query}领域中的性能瓶颈问题`,
-              tags: ['深度学习', '人工智能', query],
-            },
-            {
-              id: '2',
-              title: `基于知识图谱的${query}数据分析框架`,
-              description: `构建专门针对${query}领域的知识图谱，提高数据关联分析效率`,
-              tags: ['知识图谱', '数据分析', query],
-            },
-            {
-              id: '3',
-              title: `${query}领域中的不确定性量化研究`,
-              description: `研究${query}中的不确定性来源并提出量化方法，提高模型可解释性`,
-              tags: ['不确定性', '可解释AI', query],
-            },
-          ];
-          setResearchPlans(mockPlans);
-          setIsLoading(false);
-        });
+      setSearchQuery(query);
     }
   }, [query]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    setIsLoading(true);
+    // 使用Gemini API生成研究计划
+    generateResearchPlans(searchQuery)
+      .then(plans => {
+        setResearchPlans(plans);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error('生成研究计划失败:', error);
+        // 使用备用模拟计划
+        const mockPlans = [
+          {
+            id: '1',
+            title: `${searchQuery}领域中深度学习新方法的研究`,
+            description: `通过改进现有深度学习架构，解决当前${searchQuery}领域中的性能瓶颈问题`,
+            tags: ['深度学习', '人工智能', searchQuery],
+          },
+          {
+            id: '2',
+            title: `基于知识图谱的${searchQuery}数据分析框架`,
+            description: `构建专门针对${searchQuery}领域的知识图谱，提高数据关联分析效率`,
+            tags: ['知识图谱', '数据分析', searchQuery],
+          },
+          {
+            id: '3',
+            title: `${searchQuery}领域中的不确定性量化研究`,
+            description: `研究${searchQuery}中的不确定性来源并提出量化方法，提高模型可解释性`,
+            tags: ['不确定性', '可解释AI', searchQuery],
+          },
+        ];
+        setResearchPlans(mockPlans);
+        setIsLoading(false);
+      });
+  };
 
   // 直接从前端调用Gemini API生成研究计划
   async function generateResearchPlans(topic: string): Promise<ResearchPlan[]> {
@@ -141,18 +149,33 @@ function SearchContent() {
             <Link href="/">ResearchGPT</Link>
           </h1>
           <div className="w-1/2">
-            <input
-              type="text"
-              defaultValue={query}
-              placeholder="输入研究领域或关键词..."
-              className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <form onSubmit={handleSearch} className="flex">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="输入研究领域或关键词..."
+                className="w-full px-4 py-2 rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button 
+                type="submit"
+                className="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600 transition-colors duration-300"
+                disabled={isLoading}
+              >
+                {isLoading ? '生成中...' : '探索'}
+              </button>
+            </form>
           </div>
           <nav>
             <ul className="flex space-x-6">
               <li>
                 <Link href="/" className="hover:text-blue-500">
                   首页
+                </Link>
+              </li>
+              <li>
+                <Link href="/paper" className="hover:text-blue-500">
+                  AI论文生成
                 </Link>
               </li>
               <li>
@@ -167,13 +190,13 @@ function SearchContent() {
 
       {/* 主内容区 */}
       <main className="flex-grow container mx-auto py-8 px-4">
-        <h2 className="text-2xl font-bold mb-6">"{query}" 的研究计划</h2>
+        <h2 className="text-2xl font-bold mb-6">"{searchQuery}" 的研究计划</h2>
 
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-        ) : (
+        ) : researchPlans.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {researchPlans.map((plan) => (
               <Link href={`/plan/${encodeURIComponent(plan.title)}`} key={plan.id} className="block">
@@ -196,6 +219,11 @@ function SearchContent() {
                 </div>
               </Link>
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <p className="text-lg text-gray-600 mb-4">输入您感兴趣的研究领域，点击"探索"按钮生成研究计划</p>
+            {query && <p className="text-gray-500">未找到与"{query}"相关的研究计划</p>}
           </div>
         )}
       </main>

@@ -111,8 +111,16 @@ export default function Home() {
               <h3 className="text-xl font-bold">ResearchGPT</h3>
               <p className="text-gray-300">智能研究助手</p>
             </div>
-            <div>
+            <div className="flex flex-col items-end">
               <p>© {new Date().getFullYear()} ResearchGPT. 保留所有权利。</p>
+              <div className="mt-2 text-sm">
+                <Link href="/about" className="text-gray-300 hover:text-white mr-4">
+                  关于
+                </Link>
+                <Link href="/about#privacy" className="text-gray-300 hover:text-white">
+                  隐私协议
+                </Link>
+              </div>
             </div>
           </div>
         </div>
