@@ -185,7 +185,10 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
       {/* 头部导航 */}
       <header className="bg-white shadow-sm">
         <div className="container mx-auto py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-blue-600">
+          <h1 className="text-2xl font-bold text-blue-600 flex items-center">
+            <svg className="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
             <Link href="/">ResearchGPT</Link>
           </h1>
           <nav>
@@ -194,7 +197,10 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
                 <Link href="/" className="hover:text-blue-500">首页</Link>
               </li>
               <li>
-                <Link href="/paper" className="hover:text-blue-500 text-blue-600">论文生成</Link>
+                <Link href="/search" className="hover:text-blue-500">研究探索</Link>
+              </li>
+              <li>
+                <Link href="/paper" className="hover:text-blue-500 text-blue-600 font-medium">AI论文生成</Link>
               </li>
               <li>
                 <Link href="/about" className="hover:text-blue-500">关于</Link>
@@ -207,13 +213,15 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
       {/* 主内容区 */}
       <main className="flex-grow container mx-auto py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold mb-6 text-center">AI 论文生成器</h2>
-          <p className="text-lg text-gray-600 mb-8 text-center">
-            输入研究主题，自动生成高质量的学术论文（IEEE格式）- Powered by Gemini
-          </p>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold mb-3 fancy-title">AI 论文生成器</h2>
+            <p className="text-lg text-gray-600">
+              输入研究主题，自动生成高质量的学术论文（IEEE格式）- Powered by Gemini
+            </p>
+          </div>
 
           {/* 输入区域 */}
-          <div className="mb-8">
+          <div className="mb-8 bg-white p-6 rounded-xl shadow-md border border-gray-100">
             <div className="flex flex-col space-y-4">
               <div className="flex flex-col md:flex-row gap-4">
                 <input
@@ -221,15 +229,15 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
                   value={researchTopic}
                   onChange={(e) => setResearchTopic(e.target.value)}
                   placeholder="输入研究主题，例如：人工智能、机器学习、量子计算..."
-                  className="flex-grow px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-grow px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={isGenerating}
                 />
                 
-                {/* 添加语言选择 */}
+                {/* 语言选择下拉菜单 */}
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   disabled={isGenerating}
                 >
                   <option value="english">英文论文</option>
@@ -242,7 +250,7 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
                   className={`px-6 py-3 rounded-lg whitespace-nowrap ${
                     isGenerating || !researchTopic.trim()
                       ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-500 hover:bg-blue-600'
+                      : 'gradient-button'
                   } text-white font-medium`}
                 >
                   {isGenerating ? (
@@ -260,48 +268,56 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
               </div>
               
               <p className="text-sm text-gray-500 text-center">
-                由 Google Gemini 1.5 Flash 提供支持，生成高质量 LaTeX 格式论文（5-6页篇幅）
+                由 Google Gemini提供支持，生成高质量 LaTeX 格式论文（5-6页篇幅）
               </p>
             </div>
           </div>
 
           {/* 论文内容区域 */}
           {latexContent && (
-            <div className="mb-8">
+            <div className="mb-8 bg-white p-6 rounded-xl shadow-lg border border-gray-100">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">{paperTitle}</h3>
+                <h3 className="text-xl font-semibold text-blue-700">{paperTitle}</h3>
                 <div className="flex space-x-3">
                   <button
                     onClick={() => setIsEditMode(!isEditMode)}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-800 transition-colors duration-300"
                   >
                     {isEditMode ? '查看原始代码' : '编辑模式'}
                   </button>
                   <button
                     onClick={downloadLatex}
-                    className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white"
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-white transition-colors duration-300 flex items-center"
                   >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
                     下载LaTeX文件
                   </button>
                 </div>
               </div>
 
-              <div className="bg-white border rounded-lg shadow-md">
+              <div className="bg-white border rounded-lg shadow-inner">
                 {isEditMode ? (
                   <textarea
                     value={latexContent}
                     onChange={(e) => setLatexContent(e.target.value)}
-                    className="w-full h-[70vh] p-4 font-mono text-sm focus:outline-none resize-none border-0"
+                    className="w-full h-[70vh] p-4 font-mono text-sm focus:outline-none resize-none border-0 bg-gray-50 rounded-lg"
                   />
                 ) : (
-                  <pre className="w-full h-[70vh] p-4 font-mono text-sm overflow-auto whitespace-pre-wrap">
+                  <pre className="w-full h-[70vh] p-4 font-mono text-sm overflow-auto whitespace-pre-wrap bg-gray-50 rounded-lg">
                     {latexContent}
                   </pre>
                 )}
               </div>
               
-              <div className="mt-4 text-sm text-gray-500">
-                <p>注意：您可以下载此LaTeX文件并使用<a href="https://www.overleaf.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Overleaf</a>等在线LaTeX编辑器进行编译和微调。</p>
+              <div className="mt-4 text-sm text-gray-500 bg-blue-50 p-4 rounded-lg">
+                <p className="flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  提示：您可以下载此LaTeX文件并使用<a href="https://www.overleaf.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Overleaf</a>等在线LaTeX编辑器进行编译和微调。
+                </p>
               </div>
             </div>
           )}

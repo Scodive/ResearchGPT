@@ -174,29 +174,24 @@ function SearchContent() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {researchPlans.map((plan) => (
-              <Link href={`/plan/${plan.id}`} key={plan.id}>
-                <div className="research-card transform hover:-translate-y-1 transition-all duration-200">
-                  <h3 className="text-xl font-semibold mb-2">{plan.title}</h3>
-                  <p className="text-gray-600 mb-4">{plan.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {plan.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t flex justify-end">
-                    <span className="text-blue-500 flex items-center">
-                      查看详情
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
+              <Link href={`/plan/${encodeURIComponent(plan.title)}`} key={plan.id} className="block">
+                <div className="modern-card h-full p-6 flex flex-col">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-xl font-semibold text-blue-700 line-clamp-2">{plan.title}</h3>
+                    <span className="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full">
+                      {plan.tags[0]}
                     </span>
+                  </div>
+                  <p className="text-gray-600 mb-4 line-clamp-3">{plan.description}</p>
+                  <div className="mt-auto">
+                    <div className="inline-flex items-center text-sm text-blue-600 font-medium">
+                      查看详情
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </Link>

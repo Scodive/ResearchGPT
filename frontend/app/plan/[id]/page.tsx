@@ -36,27 +36,41 @@ export default function PlanDetail() {
   const [isSending, setIsSending] = useState(false);
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState('');
 
   useEffect(() => {
-    if (id) {
-      // 根据ID生成详细研究计划
-      generateDetailedPlan(id)
-        .then(detailedPlan => {
-          setPlan(detailedPlan);
-          setOriginalPlan(JSON.parse(JSON.stringify(detailedPlan))); // 深拷贝保存原始计划
+    const fetchPlan = async () => {
+      if (params.id) {
+        // 从URL获取ID并解码以恢复原始研究主题
+        const decodedTopic = decodeURIComponent(params.id as string);
+        setTitle(decodedTopic); // 设置标题为原始研究主题
+        
+        // 检查是否有存储的详细计划
+        const storedPlan = localStorage.getItem(`plan_${params.id}`);
+        if (storedPlan) {
+          setPlan(JSON.parse(storedPlan));
           setIsLoading(false);
-        })
-        .catch(error => {
-          console.error('获取计划详情失败:', error);
+        } else {
+          // 生成新计划时保持主题一致
+          const newPlan = await generateDetailedPlan(params.id as string, decodedTopic);
+          setPlan(newPlan);
+          // 存储到本地存储
+          localStorage.setItem(`plan_${params.id}`, JSON.stringify(newPlan));
           setIsLoading(false);
-        });
-    }
-  }, [id]);
+        }
+      }
+    };
+    
+    fetchPlan();
+  }, [params.id]);
 
   // 使用Gemini API生成详细研究计划
-  async function generateDetailedPlan(planId: string) {
-    // 在实际应用中，先尝试从缓存或服务器获取存储的计划
-    // 如果不存在，使用Gemini生成
+  async function generateDetailedPlan(planId: string, originalTopic: string) {
+    setIsLoading(true);
+    
+    // 使用原始主题作为标题
+    const title = originalTopic;
     
     const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
     const MODEL = 'gemini-2.0-flash-exp';
@@ -64,47 +78,12 @@ export default function PlanDetail() {
     
     // 从URL或存储中获取基本信息
     const urlParams = new URLSearchParams(window.location.search);
-    const title = urlParams.get('title') || `研究计划 ${planId}`;
     const description = urlParams.get('desc') || '这是一个研究计划的详细描述';
     const tagsStr = urlParams.get('tags') || '研究,学术';
     const tags = tagsStr.split(',');
     
     // 构建详细计划生成的prompt
-    const prompt = `作为研究方法学专家，请基于以下研究计划的基本信息，生成一个全面且结构化的详细研究计划：
-
-标题: "${title}"
-基本描述: "${description}"
-关键词: ${tags.join(', ')}
-
-请提供以下详细部分：
-1. 研究背景与动机：当前领域状态、挑战和研究计划的重要性
-2. 研究目标：3-5个具体可测量的目标
-3. 文献综述：关键相关工作概述，指出空白和局限性
-4. 研究方法：详细的方法论、实验设计和分析框架
-5. 预期成果：预期的研究结果和贡献
-6. 时间表：6-12个月的详细研究阶段和里程碑
-7. 所需资源：人力、技术和其他资源需求
-
-在回答中，为每个部分提供详细内容，确保内容与研究主题密切相关，并展示对该领域的专业理解。以JSON格式输出，结构如下：
-
-{
-  "id": "${planId}",
-  "title": "...",
-  "description": "...",
-  "tags": ["标签1", "标签2", "..."],
-  "background": "...",
-  "objectives": ["目标1", "目标2", ...],
-  "literature": "...",
-  "methodology": "...",
-  "expected_outcomes": "...",
-  "timeline": [
-    {"phase": "阶段1", "duration": "X周", "activities": "..."},
-    ...
-  ],
-  "resources": "..."
-}
-
-只输出JSON，不要有其他文字。`;
+    const prompt = `为主题"${originalTopic}"创建一个详细的研究计划。输出应为JSON格式...`;
     
     try {
       const response = await fetch(API_URL, {
@@ -405,25 +384,50 @@ ${conversationHistory}
       {/* 主内容区 */}
       <main className="flex-grow container mx-auto py-8 px-4">
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-3xl font-bold">{plan?.title}</h2>
-            {hasChanges && (
-              <div className="flex space-x-3">
-                <button
-                  onClick={resetPlan}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800"
+          {isEditing ? (
+            <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+              <h3 className="text-xl font-semibold mb-4">编辑研究计划</h3>
+              <div className="mb-4">
+                <label className="block text-gray-700 mb-2">研究主题</label>
+                <input 
+                  type="text" 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="flex justify-end space-x-4">
+                <button 
+                  onClick={() => setIsEditing(false)} 
+                  className="px-4 py-2 bg-gray-200 rounded-lg"
                 >
-                  取消修改
+                  取消
                 </button>
-                <button
-                  onClick={savePlan}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white"
+                <button 
+                  onClick={async () => {
+                    // 更新计划
+                    const updatedPlan = await generateDetailedPlan(params.id as string, title);
+                    setPlan(updatedPlan);
+                    localStorage.setItem(`plan_${params.id}`, JSON.stringify(updatedPlan));
+                    setIsEditing(false);
+                  }} 
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg"
                 >
-                  保存更改
+                  更新计划
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold">{title}</h2>
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center"
+              >
+                <span className="mr-2">✏️</span> 编辑计划
+              </button>
+            </div>
+          )}
           
           <p className="text-xl text-gray-600 mb-4">{plan?.description}</p>
           <div className="flex flex-wrap gap-2 mb-6">
