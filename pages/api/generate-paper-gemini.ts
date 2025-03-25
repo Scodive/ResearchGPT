@@ -16,9 +16,13 @@ export default async function handler(
       return res.status(400).json({ message: '请提供有效的研究主题' });
     }
     
-    const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw'; // 实际应用中应从环境变量获取
-    const MODEL = 'gemini-2.0-flash-exp';
-    const API_URL = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${API_KEY}`;
+    const API_KEY = process.env.GEMINI_API_KEY;
+    if (!API_KEY) {
+      console.error('未设置 GEMINI_API_KEY 环境变量');
+      return res.status(500).json({ message: 'API 密钥未配置' });
+    }
+    const MODEL = 'gemini-1.5-flash-latest'; // 更新为最新的 API 版本和模型
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
     // 构建精心设计的 prompt
     const prompt = generatePrompt(topic, language);

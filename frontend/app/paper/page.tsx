@@ -18,14 +18,27 @@ export default function PaperGenerator() {
     
     setIsGenerating(true);
     try {
-      // 调用后端 API，后端将会调用 Gemini
-      const response = await fetch('/api/generate-paper-gemini', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ topic: researchTopic, language }),
-      });
+      // 首先尝试调用 Gemini API
+      let response;
+      try {
+        response = await fetch('/api/generate-paper-gemini', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ topic: researchTopic, language }),
+        });
+      } catch (error) {
+        console.log('Gemini API调用失败，尝试使用本地模拟API', error);
+        // 如果 Gemini API 调用失败，尝试使用本地模拟API
+        response = await fetch('/api/generate-paper-local', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ topic: researchTopic, language }),
+        });
+      }
       
       if (!response.ok) {
         throw new Error(`API响应错误: ${response.status}`);
@@ -36,7 +49,14 @@ export default function PaperGenerator() {
       setLatexContent(data.latex);
     } catch (error) {
       console.error('生成论文时出错:', error);
-      alert('生成论文失败，请稍后重试：' + (error as Error).message);
+      
+      // 所有API调用都失败，显示错误并使用内置模板作为后备
+      alert('生成论文失败，正在使用内置模板');
+      const title = language === 'english' 
+        ? `Research on ${researchTopic}: A Review`
+        : `${researchTopic}研究综述`;
+      setPaperTitle(title);
+      setLatexContent(generateSampleLatex(researchTopic, title));
     } finally {
       setIsGenerating(false);
     }
