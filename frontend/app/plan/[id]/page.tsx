@@ -194,29 +194,69 @@ export default function PlanDetail() {
       const MODEL = 'gemini-2.0-flash-exp';
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
       
-      // 构建 prompt
+      // 构建更详细的 prompt
       const prompt = `基于以下研究计划生成一篇完整的学术论文：
       
       标题：${plan.title}
       研究背景：${plan.background}
       研究目标：${plan.objectives.join('\n')}
+      文献综述：${plan.literature}
       研究方法：${plan.methodology}
       预期成果：${plan.expected_outcomes}
+      研究时间线：${plan.timeline.map(t => `${t.phase}: ${t.activities}`).join('\n')}
       
-      请生成一篇完整的IEEE格式学术论文，包含以下部分：
-      1. 标题
-      2. 摘要
-      3. 关键词
-      4. 引言
-      5. 相关工作
-      6. 方法
-      7. 实验设计
-      8. 结果分析
-      9. 讨论
-      10. 结论
-      11. 参考文献
+      请生成一篇完整的IEEE格式学术论文，必须包含以下部分：
       
-      使用LaTeX格式输出，确保包含必要的LaTeX包和格式设置。`;
+      \\documentclass[conference]{IEEEtran}
+      \\usepackage{cite}
+      \\usepackage{amsmath,amssymb,amsfonts}
+      \\usepackage{graphicx}
+      \\usepackage{textcomp}
+      \\usepackage{xcolor}
+      
+      \\begin{document}
+      
+      \\title{标题}
+      \\author{作者}
+      \\maketitle
+      
+      \\begin{abstract}
+      [摘要部分]
+      \\end{abstract}
+      
+      \\begin{IEEEkeywords}
+      [关键词]
+      \\end{IEEEkeywords}
+      
+      \\section{引言}
+      [详细的研究背景和动机]
+      
+      \\section{相关工作}
+      [文献综述]
+      
+      \\section{研究方法}
+      [详细的方法论]
+      
+      \\section{实验设计}
+      [实验方案]
+      
+      \\section{预期结果}
+      [预期成果和影响]
+      
+      \\section{结论}
+      [总结和展望]
+      
+      \\bibliographystyle{IEEEtran}
+      \\bibliography{references}
+      
+      \\end{document}
+      
+      请确保：
+      1. 生成完整的LaTeX代码，包含所有必要的包和格式设置
+      2. 内容要专业、严谨，符合学术论文标准
+      3. 各部分内容要连贯、完整
+      4. 要包含参考文献
+      5. 确保LaTeX代码可以直接编译`;
       
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -250,7 +290,20 @@ export default function PlanDetail() {
       // 提取LaTeX内容
       const latexContent = generatedText.replace(/```latex\n?|\n?```/g, '').trim();
       
-      // 跳转到论文页面
+      // 创建Blob对象
+      const blob = new Blob([latexContent], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      
+      // 创建下载链接
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${plan.title.replace(/\s+/g, '_')}.tex`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      // 跳转到论文页面并传递生成的内容
       window.location.href = `/paper?title=${encodeURIComponent(plan.title)}&content=${encodeURIComponent(latexContent)}`;
     } catch (error) {
       console.error('生成论文失败:', error);
@@ -592,7 +645,7 @@ ${lastAIMessage}
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    生成论文中...
+                    正在生成论文...
                   </>
                 ) : (
                   <>
