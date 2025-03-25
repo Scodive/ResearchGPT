@@ -29,6 +29,7 @@ export default function PlanDetail() {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'ai', content: string}>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isGeneratingPaper, setIsGeneratingPaper] = useState(false);
+  const [showModifyButton, setShowModifyButton] = useState(false);
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -182,33 +183,75 @@ export default function PlanDetail() {
     }
   };
 
-  // 添加生成论文函数
+  // 修改生成论文函数
   const generatePaperFromPlan = async () => {
     if (!plan) return;
     setIsGeneratingPaper(true);
     
     try {
-      const response = await fetch('/api/generate-paper-gemini', {
+      // 直接调用 Gemini API
+      const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
+      const MODEL = 'gemini-2.0-flash-exp';
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+      
+      // 构建 prompt
+      const prompt = `基于以下研究计划生成一篇完整的学术论文：
+      
+      标题：${plan.title}
+      研究背景：${plan.background}
+      研究目标：${plan.objectives.join('\n')}
+      研究方法：${plan.methodology}
+      预期成果：${plan.expected_outcomes}
+      
+      请生成一篇完整的IEEE格式学术论文，包含以下部分：
+      1. 标题
+      2. 摘要
+      3. 关键词
+      4. 引言
+      5. 相关工作
+      6. 方法
+      7. 实验设计
+      8. 结果分析
+      9. 讨论
+      10. 结论
+      11. 参考文献
+      
+      使用LaTeX格式输出，确保包含必要的LaTeX包和格式设置。`;
+      
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          topic: plan.title,
-          background: plan.background,
-          objectives: plan.objectives,
-          methodology: plan.methodology,
-          language: 'chinese' // 或根据用户选择设置
+          contents: [
+            {
+              parts: [
+                { text: prompt }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            topP: 0.8,
+            topK: 40,
+            maxOutputTokens: 8192,
+          }
         })
       });
       
       if (!response.ok) {
-        throw new Error('生成论文失败');
+        throw new Error(`API响应错误: ${response.status}`);
       }
       
       const data = await response.json();
-      // 跳转到论文页面并传递生成的内容
-      window.location.href = `/paper?title=${encodeURIComponent(data.title)}&content=${encodeURIComponent(data.latex)}`;
+      const generatedText = data.candidates[0].content.parts[0].text;
+      
+      // 提取LaTeX内容
+      const latexContent = generatedText.replace(/```latex\n?|\n?```/g, '').trim();
+      
+      // 跳转到论文页面
+      window.location.href = `/paper?title=${encodeURIComponent(plan.title)}&content=${encodeURIComponent(latexContent)}`;
     } catch (error) {
       console.error('生成论文失败:', error);
       alert('生成论文时出错，请稍后重试');
@@ -217,40 +260,140 @@ export default function PlanDetail() {
     }
   };
 
-  // 添加发送消息函数
+  // 修改对话功能
   const sendMessage = async () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || !plan) return;
     
     const newMessage = { type: 'user' as const, content: chatInput };
     setMessages(prev => [...prev, newMessage]);
     setChatInput('');
     
     try {
-      const response = await fetch('/api/chat', {
+      // 直接调用 Gemini API
+      const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
+      const MODEL = 'gemini-2.0-flash-exp';
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+      
+      const prompt = `作为研究助手，基于以下研究计划回答问题或提供建议：
+
+研究主题：${plan.title}
+研究背景：${plan.background}
+研究目标：${plan.objectives.join('\n')}
+研究方法：${plan.methodology}
+预期成果：${plan.expected_outcomes}
+
+用户问题/建议：${chatInput}
+
+请提供专业、具体且有建设性的回答，如果用户提出了改进建议，请给出具体的修改方案。`;
+      
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: chatInput,
-          context: {
-            title: plan?.title,
-            background: plan?.background,
-            objectives: plan?.objectives,
-            methodology: plan?.methodology
+          contents: [
+            {
+              parts: [
+                { text: prompt }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.8,
+            topK: 40,
+            maxOutputTokens: 1024,
           }
         })
       });
       
       if (!response.ok) {
-        throw new Error('获取回复失败');
+        throw new Error(`API响应错误: ${response.status}`);
       }
       
       const data = await response.json();
-      setMessages(prev => [...prev, { type: 'ai', content: data.reply }]);
+      const reply = data.candidates[0].content.parts[0].text;
+      
+      // 添加AI回复
+      setMessages(prev => [...prev, { type: 'ai', content: reply }]);
+      
+      // 检查是否包含修改建议
+      if (reply.includes('建议修改') || reply.includes('可以改进')) {
+        setShowModifyButton(true);
+      }
     } catch (error) {
       console.error('发送消息失败:', error);
       setMessages(prev => [...prev, { type: 'ai', content: '抱歉，获取回复时出错，请稍后重试。' }]);
+    }
+  };
+
+  // 添加修改计划功能
+  const modifyPlanBasedOnSuggestion = async () => {
+    if (!plan || messages.length === 0) return;
+    
+    const lastAIMessage = messages[messages.length - 1].content;
+    setIsLoading(true);
+    
+    try {
+      const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
+      const MODEL = 'gemini-1.5-flash-latest';
+      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+      
+      const prompt = `基于以下原始研究计划和改进建议，生成一个更新后的研究计划：
+
+原始计划：
+${JSON.stringify(plan, null, 2)}
+
+改进建议：
+${lastAIMessage}
+
+请生成一个包含所有必要字段的新JSON计划，保持原有结构但融入改进建议。`;
+      
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.4,
+            topP: 0.8,
+            topK: 40,
+            maxOutputTokens: 8192,
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API响应错误: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const generatedText = data.candidates[0].content.parts[0].text;
+      
+      // 提取JSON
+      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const updatedPlan = JSON.parse(jsonMatch[0]);
+        setPlan(updatedPlan);
+        // 更新本地存储
+        localStorage.setItem(`plan_${encodeURIComponent(title)}`, JSON.stringify(updatedPlan));
+        setShowModifyButton(false);
+        setMessages(prev => [...prev, { type: 'ai', content: '✅ 研究计划已根据建议更新' }]);
+      }
+    } catch (error) {
+      console.error('修改计划失败:', error);
+      setMessages(prev => [...prev, { type: 'ai', content: '抱歉，更新计划时出错，请稍后重试。' }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -518,6 +661,34 @@ export default function PlanDetail() {
                 </button>
               </div>
             </div>
+
+            {showModifyButton && (
+              <div className="p-4 bg-blue-50 rounded-lg mt-4">
+                <p className="text-sm text-gray-700 mb-2">AI助手提供了改进建议，是否要更新研究计划？</p>
+                <button
+                  onClick={modifyPlanBasedOnSuggestion}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      更新中...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      根据建议更新计划
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
