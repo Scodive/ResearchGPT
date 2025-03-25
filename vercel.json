@@ -1,6 +1,5 @@
 {
-  "buildCommand": "npm install && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "devCommand": "npm run dev",
   "installCommand": "npm install"
 } 
