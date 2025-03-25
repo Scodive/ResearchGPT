@@ -1,4 +1,4 @@
-# ResearchGPT
+# [ResearchGPT网站](https://research-gpt-three.vercel.app)
 
 ResearchGPT是一个智能研究助手，可以帮助研究人员分析文献、发现研究空白、设计实验和撰写论文。
 
