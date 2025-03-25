@@ -40,4 +40,4 @@ body {
 /* 研究计划卡片样式 */
 .research-card {
   @apply bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow;
-} 
+}
