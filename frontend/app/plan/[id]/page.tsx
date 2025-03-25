@@ -294,17 +294,32 @@ export default function PlanDetail() {
       const blob = new Blob([latexContent], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       
-      // 创建下载链接
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${plan.title.replace(/\s+/g, '_')}.tex`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // 显示下载提示
+      const shouldDownload = window.confirm('论文生成完成！是否下载LaTeX文件？\n\n提示：您可以使用Overleaf在线编辑和预览LaTeX文件。');
+      
+      if (shouldDownload) {
+        // 创建下载链接并触发下载
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${plan.title.replace(/\s+/g, '_')}.tex`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // 等待一小段时间确保下载开始
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      // 清理URL对象
       window.URL.revokeObjectURL(url);
       
-      // 跳转到论文页面并传递生成的内容
-      window.location.href = `/paper?title=${encodeURIComponent(plan.title)}&content=${encodeURIComponent(latexContent)}`;
+      // 询问是否跳转到预览页面
+      const shouldPreview = window.confirm('是否跳转到论文预览页面？');
+      
+      if (shouldPreview) {
+        // 跳转到论文页面并传递生成的内容
+        window.location.href = `/paper?title=${encodeURIComponent(plan.title)}&content=${encodeURIComponent(latexContent)}`;
+      }
     } catch (error) {
       console.error('生成论文失败:', error);
       alert('生成论文时出错，请稍后重试');
@@ -637,7 +652,7 @@ ${lastAIMessage}
               <button
                 onClick={generatePaperFromPlan}
                 disabled={isGeneratingPaper}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center hover:bg-green-600 transition-colors"
+                className="group relative px-4 py-2 bg-green-500 text-white rounded-lg flex items-center hover:bg-green-600 transition-colors"
               >
                 {isGeneratingPaper ? (
                   <>
@@ -655,6 +670,9 @@ ${lastAIMessage}
                     基于此计划生成论文
                   </>
                 )}
+                <div className="absolute invisible group-hover:visible bg-black text-white text-sm rounded p-2 -top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                  将生成LaTeX格式论文，可在Overleaf中编辑
+                </div>
               </button>
             </div>
           </div>
