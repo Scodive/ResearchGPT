@@ -4,40 +4,27 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
-// 研究计划详细信息类型
-interface ResearchPlanDetail {
+// 研究计划接口定义
+interface DetailedPlan {
   id: string;
   title: string;
   description: string;
-  background: string;
-  methodology: string;
-  expectedResults: string;
-  timeline: {
-    phase: string;
-    duration: string;
-    activities: string[];
-  }[];
-  resources: string[];
   tags: string[];
+  background: string;
+  objectives: string[];
+  literature: string;
+  methodology: string;
+  expected_outcomes: string;
+  timeline: { phase: string; duration: string; activities: string }[];
+  resources: string;
 }
 
 export default function PlanDetail() {
   const params = useParams();
-  const id = params.id as string;
+  const [plan, setPlan] = useState<DetailedPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [plan, setPlan] = useState<ResearchPlanDetail | null>(null);
-  const [originalPlan, setOriginalPlan] = useState<ResearchPlanDetail | null>(null); // 保存原始计划
-  const [activeTab, setActiveTab] = useState('overview');
-  const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: '我已经为您生成了一个研究计划。您对这个计划有什么问题或建议？我可以帮您修改或完善计划的任何部分。' }
-  ]);
-  const [userMessage, setUserMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -47,17 +34,19 @@ export default function PlanDetail() {
         setTitle(decodedTopic); // 设置标题为原始研究主题
         
         // 检查是否有存储的详细计划
-        const storedPlan = localStorage.getItem(`plan_${params.id}`);
+        const storedPlanKey = `plan_${encodeURIComponent(decodedTopic)}`;
+        const storedPlan = localStorage.getItem(storedPlanKey);
+        
         if (storedPlan) {
-          setPlan(JSON.parse(storedPlan));
-          setIsLoading(false);
+          try {
+            setPlan(JSON.parse(storedPlan));
+            setIsLoading(false);
+          } catch (e) {
+            console.error('解析存储的计划数据失败:', e);
+            generateNewPlan(decodedTopic);
+          }
         } else {
-          // 生成新计划时保持主题一致
-          const newPlan = await generateDetailedPlan(params.id as string, decodedTopic);
-          setPlan(newPlan);
-          // 存储到本地存储
-          localStorage.setItem(`plan_${params.id}`, JSON.stringify(newPlan));
-          setIsLoading(false);
+          generateNewPlan(decodedTopic);
         }
       }
     };
@@ -65,25 +54,63 @@ export default function PlanDetail() {
     fetchPlan();
   }, [params.id]);
 
+  // 生成新计划
+  const generateNewPlan = async (topic: string) => {
+    try {
+      const newPlan = await generateDetailedPlan(topic);
+      setPlan(newPlan);
+      // 存储到本地存储
+      localStorage.setItem(`plan_${encodeURIComponent(topic)}`, JSON.stringify(newPlan));
+      setIsLoading(false);
+    } catch (error) {
+      console.error('生成计划失败:', error);
+      // 使用备用计划
+      const fallbackPlan: DetailedPlan = {
+        id: '1',
+        title: topic,
+        description: `关于${topic}的研究计划`,
+        tags: ['研究', topic], // 确保始终有tags数组
+        background: '研究背景将在此生成',
+        objectives: ['完成研究目标1', '完成研究目标2'],
+        literature: '相关文献综述将在此生成',
+        methodology: '研究方法将在此生成',
+        expected_outcomes: '预期成果将在此生成',
+        timeline: [
+          { phase: '第一阶段', duration: '3个月', activities: '初步研究和文献综述' },
+          { phase: '第二阶段', duration: '6个月', activities: '实验实施和数据收集' }
+        ],
+        resources: '所需资源将在此生成'
+      };
+      setPlan(fallbackPlan);
+      localStorage.setItem(`plan_${encodeURIComponent(topic)}`, JSON.stringify(fallbackPlan));
+      setIsLoading(false);
+    }
+  };
+
   // 使用Gemini API生成详细研究计划
-  async function generateDetailedPlan(planId: string, originalTopic: string) {
+  async function generateDetailedPlan(topic: string): Promise<DetailedPlan> {
     setIsLoading(true);
     
-    // 使用原始主题作为标题
-    const title = originalTopic;
-    
     const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-    const MODEL = 'gemini-2.0-flash-exp';
+    const MODEL = 'gemini-1.5-flash-latest';
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
     
-    // 从URL或存储中获取基本信息
-    const urlParams = new URLSearchParams(window.location.search);
-    const description = urlParams.get('desc') || '这是一个研究计划的详细描述';
-    const tagsStr = urlParams.get('tags') || '研究,学术';
-    const tags = tagsStr.split(',');
-    
-    // 构建详细计划生成的prompt
-    const prompt = `为主题"${originalTopic}"创建一个详细的研究计划。输出应为JSON格式...`;
+    // 构建prompt
+    const prompt = `为主题"${topic}"创建一个详细的研究计划。输出应为JSON格式，包含以下字段：
+
+    - id: 唯一标识符，可以是数字字符串
+    - title: 研究主题的标题，应当与"${topic}"相关
+    - description: 简短的研究项目描述（约100字）
+    - tags: 与研究相关的标签数组（3-5个标签）
+    - background: 研究背景介绍（约200字）
+    - objectives: 研究目标数组（3-5个目标）
+    - literature: 简要的文献综述（约200字）
+    - methodology: 研究方法详细说明（约200字） 
+    - expected_outcomes: 预期研究成果（约150字）
+    - timeline: 包含研究阶段的对象数组，每个对象有phase（阶段名称）、duration（持续时间）和activities（活动描述）字段
+    - resources: 所需资源和工具（约100字）
+
+    确保输出是有效的JSON格式，包含所有上述字段。不要包含任何其他文本或解释，只返回JSON对象。`;
     
     try {
       const response = await fetch(API_URL, {
@@ -118,251 +145,48 @@ export default function PlanDetail() {
       // 提取JSON
       const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsedPlan = JSON.parse(jsonMatch[0]);
+        // 确保plan中有tags字段，即使API没有返回
+        if (!parsedPlan.tags || !Array.isArray(parsedPlan.tags)) {
+          parsedPlan.tags = [topic, '研究'];
+        }
+        return parsedPlan;
       } else {
         throw new Error('无法解析API返回的JSON');
       }
     } catch (error) {
       console.error('生成详细计划失败:', error);
-      // 返回基本计划作为备用
-      return {
-        id: planId,
-        title: title,
-        description: description,
-        tags: tags,
-        background: '无法生成详细背景信息',
-        objectives: ['完成研究', '发表论文'],
-        literature: '无法生成文献综述',
-        methodology: '无法生成研究方法',
-        expected_outcomes: '无法生成预期成果',
-        timeline: [
-          {phase: '计划阶段', duration: '4周', activities: '文献综述和计划制定'}
-        ],
-        resources: '标准研究资源'
-      };
+      throw error;
     }
   }
 
-  // 处理发送消息
-  const handleSendMessage = async () => {
-    if (!userMessage.trim() || isSending || !plan) return;
-    
-    const newMessage = { role: 'user', content: userMessage };
-    setMessages(prev => [...prev, newMessage]);
-    setUserMessage('');
-    setIsSending(true);
+  // 更新研究计划
+  const updatePlan = async () => {
+    if (!title.trim()) return;
+    setIsLoading(true);
     
     try {
-      // 使用Gemini API回答用户问题
-      const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-1.5-flash-latest';
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
-      
-      // 构建对话历史供AI参考
-      const conversationHistory = messages.map(msg => 
-        `${msg.role === 'user' ? '用户' : 'AI助手'}: ${msg.content}`
-      ).join('\n\n');
-      
-      // 构建对话的prompt
-      const prompt = `你是一位专业的研究计划顾问，正在帮助用户完善以下研究计划。
-
-当前研究计划: 
-${JSON.stringify(plan, null, 2)}
-
-对话历史:
-${conversationHistory}
-
-用户的最新问题或建议: "${userMessage}"
-
-请提供以下两部分内容:
-1. 针对用户问题的专业回答（200-300字）
-2. 如果用户建议修改研究计划的特定部分，请提供具体的修改建议，格式为JSON对象，例如:
-{"action": "update", "field": "要修改的字段", "content": "新内容"}
-
-例如字段可以是"title", "description", "background", "methodology", "objectives", "timeline", "resources"等。
-
-如果用户没有要求修改计划，则只返回回答，不需要返回JSON对象。
-如果需要修改计划，先回答用户问题，然后另起一行，以"==PLAN_UPDATE=="开头，之后提供JSON更新对象。
-
-确保你的回答对用户友好、专业且有实质性内容，并且任何修改建议都与研究主题相关。`;
-      
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topP: 0.8,
-            topK: 40,
-            maxOutputTokens: 2048,
-          }
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API响应错误: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      let assistantResponse = data.candidates[0].content.parts[0].text;
-      
-      // 检查是否包含计划更新
-      const updateParts = assistantResponse.split('==PLAN_UPDATE==');
-      const userFacingResponse = updateParts[0].trim();
-      
-      // 添加助手回复到对话
-      setMessages(prev => [...prev, { role: 'assistant', content: userFacingResponse }]);
-      
-      // 如果有计划更新指令
-      if (updateParts.length > 1) {
-        try {
-          setIsUpdatingPlan(true);
-          const updateJson = updateParts[1].trim();
-          const updateData = JSON.parse(updateJson);
-          
-          if (updateData.action === 'update' && updateData.field && updateData.content) {
-            // 更新计划
-            const updatedPlan = { ...plan };
-            
-            // 特殊处理嵌套字段，如timeline.0.activities
-            if (updateData.field.includes('.')) {
-              const fieldParts = updateData.field.split('.');
-              let target = updatedPlan as any;
-              
-              // 导航到嵌套对象的倒数第二层
-              for (let i = 0; i < fieldParts.length - 1; i++) {
-                const part = fieldParts[i];
-                if (!isNaN(Number(part))) {
-                  // 处理数组索引
-                  target = target[Number(part)];
-                } else {
-                  target = target[part];
-                }
-              }
-              
-              // 更新最后一层
-              const lastField = fieldParts[fieldParts.length - 1];
-              target[lastField] = updateData.content;
-            } else {
-              // 简单字段直接更新
-              (updatedPlan as any)[updateData.field] = updateData.content;
-            }
-            
-            setPlan(updatedPlan);
-            setHasChanges(true);
-            
-            // 添加系统消息通知用户计划已更新
-            setTimeout(() => {
-              setMessages(prev => [...prev, { 
-                role: 'assistant', 
-                content: `✅ 已根据您的建议更新了研究计划的${getFieldDisplayName(updateData.field)}部分。` 
-              }]);
-              setIsUpdatingPlan(false);
-            }, 1000);
-          }
-        } catch (error) {
-          console.error('解析或应用更新失败:', error);
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: '抱歉，我无法应用您建议的更改。请再次尝试或使用更清晰的说明。' 
-          }]);
-          setIsUpdatingPlan(false);
-        }
-      } else {
-        setIsUpdatingPlan(false);
-      }
+      const updatedPlan = await generateDetailedPlan(title);
+      setPlan(updatedPlan);
+      // 更新本地存储
+      localStorage.setItem(`plan_${encodeURIComponent(title)}`, JSON.stringify(updatedPlan));
+      setIsEditing(false);
+      setIsLoading(false);
     } catch (error) {
-      console.error('获取回答失败:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: '抱歉，我无法处理您的请求。请稍后再试。' 
-      }]);
-      setIsUpdatingPlan(false);
-    } finally {
-      setIsSending(false);
+      console.error('更新计划失败:', error);
+      setIsLoading(false);
     }
   };
-
-  // 将字段名转换为显示名
-  const getFieldDisplayName = (field: string): string => {
-    const fieldMap: Record<string, string> = {
-      'title': '标题',
-      'description': '描述',
-      'background': '研究背景',
-      'methodology': '研究方法',
-      'objectives': '研究目标',
-      'timeline': '时间表',
-      'resources': '资源',
-      'expected_outcomes': '预期成果'
-    };
-    
-    return fieldMap[field] || field;
-  };
-
-  // 重置计划到原始状态
-  const resetPlan = () => {
-    if (originalPlan) {
-      setPlan(JSON.parse(JSON.stringify(originalPlan)));
-      setHasChanges(false);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: '已将研究计划重置为原始状态。' 
-      }]);
-    }
-  };
-
-  // 保存计划
-  const savePlan = async () => {
-    // 在实际应用中，这里应该调用API保存计划
-    // 模拟保存成功
-    setOriginalPlan(JSON.parse(JSON.stringify(plan)));
-    setHasChanges(false);
-    setMessages(prev => [...prev, { 
-      role: 'assistant', 
-      content: '✅ 研究计划已成功保存！' 
-    }]);
-  };
-
-  // 切换部分展开/折叠
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => 
-      prev.includes(section) 
-        ? prev.filter(s => s !== section) 
-        : [...prev, section]
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (!plan) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="text-xl">研究计划未找到</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* 头部导航 */}
       <header className="bg-white shadow-sm">
         <div className="container mx-auto py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-blue-600">
+          <h1 className="text-2xl font-bold text-blue-600 flex items-center">
+            <svg className="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
             <Link href="/">ResearchGPT</Link>
           </h1>
           <nav>
@@ -371,7 +195,10 @@ ${conversationHistory}
                 <Link href="/" className="hover:text-blue-500">首页</Link>
               </li>
               <li>
-                <Link href="/paper" className="hover:text-blue-500">论文生成</Link>
+                <Link href="/search" className="hover:text-blue-500">研究探索</Link>
+              </li>
+              <li>
+                <Link href="/paper" className="hover:text-blue-500">AI论文生成</Link>
               </li>
               <li>
                 <Link href="/about" className="hover:text-blue-500">关于</Link>
@@ -383,217 +210,147 @@ ${conversationHistory}
 
       {/* 主内容区 */}
       <main className="flex-grow container mx-auto py-8 px-4">
-        <div className="mb-8">
-          {isEditing ? (
-            <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-              <h3 className="text-xl font-semibold mb-4">编辑研究计划</h3>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">研究主题</label>
-                <input 
-                  type="text" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </div>
-              <div className="flex justify-end space-x-4">
-                <button 
-                  onClick={() => setIsEditing(false)} 
-                  className="px-4 py-2 bg-gray-200 rounded-lg"
-                >
-                  取消
-                </button>
-                <button 
-                  onClick={async () => {
-                    // 更新计划
-                    const updatedPlan = await generateDetailedPlan(params.id as string, title);
-                    setPlan(updatedPlan);
-                    localStorage.setItem(`plan_${params.id}`, JSON.stringify(updatedPlan));
-                    setIsEditing(false);
-                  }} 
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg"
-                >
-                  更新计划
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold">{title}</h2>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center"
-              >
-                <span className="mr-2">✏️</span> 编辑计划
-              </button>
-            </div>
-          )}
-          
-          <p className="text-xl text-gray-600 mb-4">{plan?.description}</p>
-          <div className="flex flex-wrap gap-2 mb-6">
-            {plan?.tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
-              >
-                {tag}
-              </span>
-            ))}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-
-          {/* 选项卡导航 */}
-          <div className="border-b mb-6">
-            <nav className="flex space-x-8">
-              <button
-                className={`py-4 px-1 ${
-                  activeTab === 'overview'
-                    ? 'border-b-2 border-blue-500 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('overview')}
-              >
-                概述
-              </button>
-              <button
-                className={`py-4 px-1 ${
-                  activeTab === 'methodology'
-                    ? 'border-b-2 border-blue-500 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('methodology')}
-              >
-                研究方法
-              </button>
-              <button
-                className={`py-4 px-1 ${
-                  activeTab === 'timeline'
-                    ? 'border-b-2 border-blue-500 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('timeline')}
-              >
-                时间安排
-              </button>
-              <button
-                className={`py-4 px-1 ${
-                  activeTab === 'resources'
-                    ? 'border-b-2 border-blue-500 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab('resources')}
-              >
-                所需资源
-              </button>
-            </nav>
-          </div>
-
-          {/* 内容区 */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            {activeTab === 'overview' && (
-              <div>
-                <h3 className="text-xl font-semibold mb-4">研究背景</h3>
-                <div className="whitespace-pre-line mb-6">{plan.background}</div>
-                <h3 className="text-xl font-semibold mb-4">预期成果</h3>
-                <div className="whitespace-pre-line">{plan.expectedResults}</div>
-              </div>
-            )}
-
-            {activeTab === 'methodology' && (
-              <div>
-                <h3 className="text-xl font-semibold mb-4">研究方法</h3>
-                <div className="whitespace-pre-line">{plan.methodology}</div>
-              </div>
-            )}
-
-            {activeTab === 'timeline' && (
-              <div>
-                <h3 className="text-xl font-semibold mb-4">研究时间表</h3>
-                <div className="space-y-6">
-                  {plan.timeline.map((phase, index) => (
-                    <div key={index} className="border-l-4 border-blue-500 pl-4">
-                      <h4 className="text-lg font-semibold">{phase.phase}</h4>
-                      <p className="text-gray-600 mb-2">预计时长: {phase.duration}</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {phase.activities.map((activity, actIndex) => (
-                          <li key={actIndex}>{activity}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+            {isEditing ? (
+              <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h3 className="text-xl font-semibold mb-4">编辑研究计划</h3>
+                <div className="mb-4">
+                  <label className="block text-gray-700 mb-2">研究主题</label>
+                  <input 
+                    type="text" 
+                    value={title} 
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <button 
+                    onClick={() => setIsEditing(false)} 
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    onClick={updatePlan} 
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                  >
+                    更新计划
+                  </button>
                 </div>
               </div>
-            )}
-
-            {activeTab === 'resources' && (
-              <div>
-                <h3 className="text-xl font-semibold mb-4">所需资源</h3>
-                <ul className="list-disc list-inside space-y-2">
-                  {plan.resources.map((resource, index) => (
-                    <li key={index}>{resource}</li>
-                  ))}
-                </ul>
+            ) : (
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold">{title}</h2>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center hover:bg-blue-600 transition-colors"
+                >
+                  <span className="mr-2">✏️</span> 编辑计划
+                </button>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* 增强的对话区域 */}
-        <div className="mt-8 mb-4">
-          <h3 className="text-xl font-semibold mb-4">与AI讨论并优化这个研究计划</h3>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            {isUpdatingPlan && (
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
-                <div className="flex items-center">
-                  <svg className="animate-spin h-5 w-5 mr-3 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <p className="text-yellow-700">正在根据您的建议更新研究计划...</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="mb-4 max-h-80 overflow-y-auto border rounded-lg p-4">
-              <div className="space-y-4">
-                {messages.map((message, index) => (
-                  <div key={index} className={`${message.role === 'user' ? 'bg-gray-100' : 'bg-blue-100'} p-3 rounded-lg`}>
-                    <p className="font-semibold text-gray-600">{message.role === 'user' ? '您' : 'ResearchGPT'}</p>
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+            {plan && (
+              <div className="space-y-8">
+                <div>
+                  <p className="text-gray-700 mb-4">{plan.description}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {/* 确保tags存在并且是数组才使用map */}
+                    {plan.tags && Array.isArray(plan.tags) ? (
+                      plan.tags.map((tag, index) => (
+                        <span key={index} className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                          {tag}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                        研究
+                      </span>
+                    )}
                   </div>
-                ))}
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">研究背景</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700">{plan.background}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">研究目标</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <ul className="list-disc pl-5 space-y-2">
+                      {/* 确保objectives存在且是数组 */}
+                      {plan.objectives && Array.isArray(plan.objectives) ? (
+                        plan.objectives.map((objective, index) => (
+                          <li key={index} className="text-gray-700">{objective}</li>
+                        ))
+                      ) : (
+                        <li className="text-gray-700">完成研究目标</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">文献综述</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700">{plan.literature}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">研究方法</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700">{plan.methodology}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">预期成果</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700">{plan.expected_outcomes}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">研究时间线</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="space-y-4">
+                      {/* 确保timeline存在且是数组 */}
+                      {plan.timeline && Array.isArray(plan.timeline) ? (
+                        plan.timeline.map((phase, index) => (
+                          <div key={index} className="border-l-4 border-blue-500 pl-4">
+                            <h4 className="font-medium text-lg">{phase.phase} <span className="text-gray-500 text-sm">({phase.duration})</span></h4>
+                            <p className="text-gray-700">{phase.activities}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="border-l-4 border-blue-500 pl-4">
+                          <h4 className="font-medium text-lg">研究阶段 <span className="text-gray-500 text-sm">(3-6个月)</span></h4>
+                          <p className="text-gray-700">进行研究活动</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">所需资源</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-gray-700">{plan.resources}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-start">
-              <textarea
-                placeholder="输入您的问题或建议...例如：'我觉得研究方法需要更具体'、'能否添加一个关于数据收集的阶段？'"
-                className="flex-grow px-4 py-2 rounded-l-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 h-20 resize-none"
-                value={userMessage}
-                onChange={(e) => setUserMessage(e.target.value)}
-                disabled={isSending || isUpdatingPlan}
-              />
-              <button
-                onClick={handleSendMessage}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-r-lg h-20"
-                disabled={isSending || isUpdatingPlan || !userMessage.trim()}
-              >
-                {isSending ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    处理中
-                  </span>
-                ) : '发送'}
-              </button>
-            </div>
-            
-            <div className="mt-3 text-sm text-gray-500">
-              <p>提示：您可以要求AI修改任何部分的计划内容，例如研究方法、时间表或资源需求。</p>
-            </div>
+            )}
           </div>
-        </div>
+        )}
       </main>
 
       {/* 底部 */}
@@ -604,8 +361,16 @@ ${conversationHistory}
               <h3 className="text-xl font-bold">ResearchGPT</h3>
               <p className="text-gray-300">智能研究助手</p>
             </div>
-            <div>
+            <div className="flex flex-col items-end">
               <p>© {new Date().getFullYear()} ResearchGPT. 保留所有权利。</p>
+              <div className="mt-2 text-sm">
+                <Link href="/about" className="text-gray-300 hover:text-white mr-4">
+                  关于
+                </Link>
+                <Link href="/privacy" className="text-gray-300 hover:text-white">
+                  隐私协议
+                </Link>
+              </div>
             </div>
           </div>
         </div>
