@@ -59,7 +59,7 @@ export default function PlanDetail() {
     // 如果不存在，使用Gemini生成
     
     const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-    const MODEL = 'gemini-1.5-flash-latest';
+    const MODEL = 'gemini-2.0-flash-exp';
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
     
     // 从URL或存储中获取基本信息

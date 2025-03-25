@@ -120,7 +120,7 @@ function SearchContent() {
       const generatedText = data.candidates[0].content.parts[0].text;
       
       // 提取JSON
-      const jsonMatch = generatedText.match(/\[\s*\{.*\}\s*\]/s);
+      const jsonMatch = generatedText.match(/\[\s*\{[\s\S]*\}\s*\]/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       } else {
