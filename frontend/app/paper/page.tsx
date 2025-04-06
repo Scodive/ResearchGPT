@@ -110,7 +110,7 @@ export default function PaperGenerator() {
       `You are a leading researcher and professor in the field of ${topic} with numerous publications in top journals. Create a complete, innovative IEEE-formatted LaTeX paper on "${topic}" that demonstrates original thinking and novel approaches.
 
 REQUIREMENTS:
-1. The paper MUST be comprehensive (5-6 pages when compiled) with significant technical depth
+1. The paper MUST be comprehensive (15-20 pages when compiled) with significant technical depth
 2. Format for IEEE conference with proper structure:
    - Title (creative, specific, and attention-grabbing)
    - Author information (Use "ResearchGPT AI Research Team")
@@ -146,7 +146,7 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
       `你是${topic}领域的顶尖研究者和教授，在顶级期刊发表过多篇论文。请创建一篇完整、创新的IEEE格式LaTeX论文，主题是"${topic}"，展示原创思维和新颖方法。
 
 要求:
-1. 论文必须全面（编译后5-6页）且具有显著的技术深度
+1. 论文必须全面（编译后15-20页）且具有显著的技术深度
 2. 按IEEE会议格式构建，结构包括:
    - 标题（创意性强、具体且吸引人）
    - 作者信息（使用"ResearchGPT AI研究团队"）
