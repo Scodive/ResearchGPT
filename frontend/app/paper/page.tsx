@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
-import { Analytics } from "@vercel/analytics/react"
+
 
 export default function PaperGenerator() {
   const [researchTopic, setResearchTopic] = useState('');

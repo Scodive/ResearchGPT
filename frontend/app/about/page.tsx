@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Analytics } from "@vercel/analytics/react"
+
 
 export default function About() {
   return (

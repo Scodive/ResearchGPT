@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Analytics } from "@vercel/analytics/react"
+
 
 // 研究计划接口定义
 interface DetailedPlan {
