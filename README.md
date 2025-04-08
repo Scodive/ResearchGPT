@@ -4,7 +4,9 @@ ResearchGPT是一个智能研究助手，可以帮助研究人员分析文献、
 
 <img width="229" alt="image" src="https://github.com/user-attachments/assets/99478f35-f0d9-4c71-8e52-d673b0d09dde" /><img width="229" alt="image" src="https://github.com/user-attachments/assets/07e350d6-3245-4a91-866e-006ffdc4f44f" /> <img width="361" alt="image" src="https://github.com/user-attachments/assets/a8efae7f-f32e-419b-baa3-62985fd6c30b" />
 
+## Star History
 
+[![Star History Chart](https://api.star-history.com/svg?repos=Scodive/ResearchGPT&type=Date)](https://www.star-history.com/#Scodive/ResearchGPT&Date)
 
 ## 主要功能
 
