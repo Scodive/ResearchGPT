@@ -96,7 +96,7 @@ export default function About() {
             </p>
             <div className="flex justify-center mb-6">
               <img
-                src="/images/IMG_6680.JPG"
+                src="/IMG_6680.JPG"
                 alt="赞助二维码"
                 width={250}
                 height={250}
