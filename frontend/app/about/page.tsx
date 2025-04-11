@@ -47,7 +47,7 @@ export default function About() {
               该项目利用人工智能技术，特别是生成式大型语言模型，为学术研究提供智能辅助工具。
             </p>
             <p className="text-gray-700">
-              本项目仅为演示和研究目的而创建，旨在探索AI在学术研究领域的应用潜力。
+              本项目仅为演示和研究目的而创建，旨在探索AI在学术研究领域的应用潜力，项目目前为demo阶段。
             </p>
           </div>
           
@@ -89,6 +89,22 @@ export default function About() {
             </div>
           </div>
           
+          <div className="mb-8 border-t pt-8">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">支持与反馈</h3>
+            <p className="text-gray-700 mb-6 leading-relaxed">
+              如果您觉得该项目有帮助，欢迎给作者<span className="font-medium text-indigo-600">赞助</span>进行网页维护，感谢您的支持！也欢迎提出更多功能性的意见。
+            </p>
+            <div className="flex justify-center mb-6">
+              <img
+                src="/images/IMG_6680.JPG"
+                alt="赞助二维码"
+                width={250}
+                height={250}
+                className="rounded-lg shadow-md"
+              />
+            </div>
+          </div>
+
           <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
             <h3 className="text-xl font-semibold mb-3 text-blue-800">隐私协议与免责声明</h3>
             <div className="text-gray-700 space-y-3">

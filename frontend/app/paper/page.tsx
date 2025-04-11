@@ -3,6 +3,8 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 
+// 添加API基础URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-railway-app.railway.app';
 
 export default function PaperGenerator() {
   const [researchTopic, setResearchTopic] = useState('');
@@ -19,6 +21,20 @@ export default function PaperGenerator() {
     
     setIsGenerating(true);
     try {
+      // 记录查询到数据库
+      await fetch(`${API_BASE_URL}/api/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'user@example.com', // 可以添加用户认证
+          topic: researchTopic,
+          content: researchTopic,
+          type: 'paper'
+        })
+      });
+
       // 直接调用 Gemini API
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
       const MODEL = 'gemini-2.0-flash-exp';
@@ -63,10 +79,8 @@ export default function PaperGenerator() {
       setPaperTitle(title);
       setLatexContent(latex);
     } catch (error) {
-      console.error('生成论文时出错:', error);
-      
-      // 调用失败时显示错误信息
-      alert('生成论文失败: ' + (error as Error).message);
+      console.error('生成论文失败:', error);
+      alert('生成论文时出错，请稍后重试');
     } finally {
       setIsGenerating(false);
     }
