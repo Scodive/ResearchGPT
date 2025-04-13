@@ -40,7 +40,7 @@ export default function PaperGenerator() {
 
       // --- 保留原来直接调用 Gemini API 生成论文的逻辑 ---
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw'; // 确保 API Key 安全
-      const MODEL = 'gemini-1.5-flash-latest';
+      const MODEL = 'gemini-2.0-flash-latest';
       const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
       
       // 生成 prompt
