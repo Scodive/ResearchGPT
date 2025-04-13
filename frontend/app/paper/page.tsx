@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 
 // 添加API基础URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-railway-app.railway.app';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-railway-app.railway.app';
 
 export default function PaperGenerator() {
   const [researchTopic, setResearchTopic] = useState('');
@@ -17,34 +17,37 @@ export default function PaperGenerator() {
 
   // 生成论文
   const generatePaper = async () => {
-    if (!researchTopic.trim()) return;
-    
+    // if (!researchTopic.trim()) return; // 如果之前有基于 user 的检查，也可能需要调整
     setIsGenerating(true);
     try {
-      // 记录查询到数据库
+      // --- START: 删除这部分后端调用 ---
+      /* 
+      // 记录查询到数据库 - 这部分代码需要删除或注释掉
       await fetch(`${API_BASE_URL}/api/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: 'user@example.com', // 可以添加用户认证
-          topic: researchTopic,
-          content: researchTopic,
+          email: 'user@example.com', // 或者其他用户标识
+          topic: researchTopic, // 使用正确的变量名
+          content: researchTopic, // 使用正确的变量名
           type: 'paper'
         })
       });
+      */
+      // --- END: 删除这部分后端调用 ---
 
-      // 直接调用 Gemini API
-      const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-1.5-flash-exp';
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+      // --- 保留原来直接调用 Gemini API 生成论文的逻辑 ---
+      const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw'; // 确保 API Key 安全
+      const MODEL = 'gemini-2.0-flash-latest';
+      const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
       
       // 生成 prompt
       const prompt = generatePrompt(researchTopic, language);
       
       // 直接发送请求
-      const response = await fetch(API_URL, {
+      const response = await fetch(GEMINI_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +70,10 @@ export default function PaperGenerator() {
       });
       
       if (!response.ok) {
-        throw new Error(`API响应错误: ${response.status}`);
+        // 确保这里的错误处理只针对 Gemini API 调用
+        // throw new Error('生成失败'); // 保持这个错误处理
+        // 注意：之前的 TypeError: Load failed 可能是因为 fetch 到后端失败导致的，删除后端调用后这个特定的 TypeError 应该会消失
+        throw new Error(`Gemini API 响应错误: ${response.status}`);
       }
       
       const data = await response.json();
