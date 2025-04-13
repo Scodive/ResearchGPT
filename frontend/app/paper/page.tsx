@@ -37,7 +37,7 @@ export default function PaperGenerator() {
 
       // 直接调用 Gemini API
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-2.0-flash-exp';
+      const MODEL = 'gemini-1.5-flash-exp';
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
       
       // 生成 prompt
