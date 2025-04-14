@@ -1,8 +1,10 @@
 'use client';
 
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 // 研究方向卡片接口
 interface ResearchIdea {
@@ -29,8 +31,19 @@ const sampleIdeas: ResearchIdea[] = [
   { id: 6, title: '量子计算在药物发现中的应用', description: '利用量子算法模拟分子相互作用，加速新药研发过程。' },
 ];
 
+export default function SearchPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
+      </div>
+    }>
+      <SearchPage />
+    </Suspense>
+  )
+}
 
-export default function SearchPage() {
+function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,7 +97,7 @@ export default function SearchPage() {
   // 使用Gemini API生成研究计划摘要
   async function generateResearchPlans(topic: string): Promise<Plan[]> {
     const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-    const MODEL = 'gemini-2.0-flash-exp'; // 使用 Flash 模型可能更快响应
+    const MODEL = 'gemini-2.0-flash-exp'; // 更新为正确的模型名称
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
     const prompt = `针对研究主题 "${topic}"，生成 3 个创新且具体的研究方向计划摘要。每个计划摘要应包含：
