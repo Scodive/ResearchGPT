@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import Image from 'next/image'; // Import Image for potential future use or refinement
+import ReactMarkdown from 'react-markdown'; // Import react-markdown
+import remarkGfm from 'remark-gfm'; // Import remark-gfm
 
 
 // 研究计划接口定义
@@ -30,7 +33,7 @@ export default function PlanDetail() {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'ai', content: string}>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isGeneratingPaper, setIsGeneratingPaper] = useState(false);
-  const [showModifyButton, setShowModifyButton] = useState(false);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null); // Ref for scrolling chat
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -59,6 +62,13 @@ export default function PlanDetail() {
     
     fetchPlan();
   }, [params.id]);
+
+  useEffect(() => {
+    // Scroll to bottom of chat when messages update
+    if (showChat && chatMessagesEndRef.current) {
+      chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, showChat]);
 
   // 生成新计划
   const generateNewPlan = async (topic: string) => {
@@ -332,347 +342,313 @@ export default function PlanDetail() {
   // 修改对话功能
   const sendMessage = async () => {
     if (!chatInput.trim() || !plan) return;
-    
-    const newMessage = { type: 'user' as const, content: chatInput };
-    setMessages(prev => [...prev, newMessage]);
+
+    const userMessage = { type: 'user' as const, content: chatInput };
+    setMessages(prev => [...prev, userMessage]);
     setChatInput('');
-    
+    // Scroll to bottom after sending user message
+    requestAnimationFrame(() => {
+      if (chatMessagesEndRef.current) {
+        chatMessagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+
     try {
-      // 直接调用 Gemini API
+      // Directly call Gemini API
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-2.0-flash-exp';
+      const MODEL = 'gemini-2.0-flash-exp'; // Use 1.5 flash, 2.0 might not exist or cause issues
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
-      
+
       const prompt = `作为研究助手，基于以下研究计划回答问题或提供建议：
 
 研究主题：${plan.title}
 研究背景：${plan.background}
-研究目标：${plan.objectives.join('\n')}
+研究目标：${plan.objectives.join('\\n')}
 研究方法：${plan.methodology}
 预期成果：${plan.expected_outcomes}
 
-用户问题/建议：${chatInput}
+用户问题/建议：${userMessage.content}
 
-请提供专业、具体且有建设性的回答，如果用户提出了改进建议，请给出具体的修改方案。`;
-      
+请提供专业、具体且有建设性的回答。如果用户提出了改进建议，请在回复中清晰地说明修改方案，并可以使用 Markdown 格式（例如 **加粗**, *斜体*, 列表 - 或 *) 来组织内容。`;
+
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt }
-              ]
-            }
-          ],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.7,
-            topP: 0.8,
-            topK: 40,
-            maxOutputTokens: 1024,
+            temperature: 0.7, topP: 0.8, topK: 40, maxOutputTokens: 1024,
           }
         })
       });
-      
-      if (!response.ok) {
-        throw new Error(`API响应错误: ${response.status}`);
-      }
-      
+
+      if (!response.ok) throw new Error(`API响应错误: ${response.status}`);
+
       const data = await response.json();
       const reply = data.candidates[0].content.parts[0].text;
-      
-      // 添加AI回复
+
+      // Add AI reply
       setMessages(prev => [...prev, { type: 'ai', content: reply }]);
-      
-      // 检查是否包含修改建议
-      if (reply.includes('建议修改') || reply.includes('可以改进')) {
-        setShowModifyButton(true);
-      }
+
     } catch (error) {
       console.error('发送消息失败:', error);
       setMessages(prev => [...prev, { type: 'ai', content: '抱歉，获取回复时出错，请稍后重试。' }]);
     }
   };
 
-  // 添加修改计划功能
-  const modifyPlanBasedOnSuggestion = async () => {
-    if (!plan || messages.length === 0) return;
-    
-    const lastAIMessage = messages[messages.length - 1].content;
-    setIsLoading(true);
-    
+  // 修改计划功能 - Accepts suggestion content as parameter
+  const modifyPlanBasedOnSuggestion = async (suggestionContent: string) => {
+    if (!plan) return; // Only need the plan
+
+    // Consider adding a dedicated loading state for modification
+    setIsLoading(true); // Using the general loading state for now
+
     try {
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-1.5-flash-latest';
+      const MODEL = 'gemini-2.0-flash-exp'; // Use a reliable model for generation
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
-      
-      const prompt = `基于以下原始研究计划和改进建议，生成一个更新后的研究计划：
+
+      const prompt = `基于以下原始研究计划和 AI 提供的具体改进建议，生成一个更新后的研究计划JSON对象。
 
 原始计划：
+\`\`\`json
 ${JSON.stringify(plan, null, 2)}
+\`\`\`
 
-改进建议：
-${lastAIMessage}
+AI 改进建议：
+"${suggestionContent}"
 
-请生成一个包含所有必要字段的新JSON计划，保持原有结构但融入改进建议。`;
-      
+请分析建议内容，并将相关的、合理的修改融入到原始计划中。输出必须是一个**完整且有效**的 JSON 对象，该对象代表**更新后**的研究计划，保持原有 JSON 结构。只输出 JSON 对象，不要包含任何其他解释性文字或 markdown 标记。`;
+
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt }
-              ]
-            }
-          ],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.4,
-            topP: 0.8,
-            topK: 40,
-            maxOutputTokens: 8192,
+            temperature: 0.4, topP: 0.8, topK: 40, maxOutputTokens: 8192,
           }
         })
       });
-      
-      if (!response.ok) {
-        throw new Error(`API响应错误: ${response.status}`);
-      }
-      
+
+      if (!response.ok) throw new Error(`API响应错误: ${response.status}`);
+
       const data = await response.json();
       const generatedText = data.candidates[0].content.parts[0].text;
-      
-      // 提取JSON
+
+      // Extract JSON
       const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const updatedPlan = JSON.parse(jsonMatch[0]);
+        // Basic validation to ensure essential fields exist
+        if (!updatedPlan.title || !updatedPlan.objectives) {
+           throw new Error("生成的计划缺少关键字段");
+        }
+
         setPlan(updatedPlan);
-        // 更新本地存储
-        localStorage.setItem(`plan_${encodeURIComponent(title)}`, JSON.stringify(updatedPlan));
-        setShowModifyButton(false);
-        setMessages(prev => [...prev, { type: 'ai', content: '✅ 研究计划已根据建议更新' }]);
+        // Update local storage with the correct key (based on the potentially updated title)
+        localStorage.setItem(`plan_${encodeURIComponent(updatedPlan.title)}`, JSON.stringify(updatedPlan));
+        // If the title changed during modification, update the state
+        if (updatedPlan.title !== title) {
+             setTitle(updatedPlan.title);
+             // Optionally update URL, though this can be complex if ID needs to change
+             // window.history.pushState({}, '', `/plan/${encodeURIComponent(updatedPlan.title)}`);
+        }
+
+        // Add a confirmation message to chat
+        setMessages(prev => [...prev, { type: 'ai', content: `✅ 研究计划已根据建议更新。\n新的标题是："${updatedPlan.title}"` }]);
+        // Optionally close the chat after successful update?
+        // setShowChat(false);
+      } else {
+        console.error("未找到 JSON:", generatedText);
+        throw new Error('无法从API响应中解析更新后的计划 JSON');
       }
     } catch (error) {
-      console.error('修改计划失败:', error);
-      setMessages(prev => [...prev, { type: 'ai', content: '抱歉，更新计划时出错，请稍后重试。' }]);
+      console.error('根据建议修改计划失败:', error);
+      // Add error message to chat
+      setMessages(prev => [...prev, { type: 'ai', content: `❌ 抱歉，更新计划时出错：${error.message}` }]);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Stop loading indicator
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* 头部导航 */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-blue-600 flex items-center">
-            <svg className="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-            </svg>
-            <Link href="/">ResearchGPT</Link>
-          </h1>
+      <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+        <div className="container mx-auto py-4 px-6 flex justify-between items-center">
+          <Link href="/" className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors duration-200">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+            <span className="text-2xl font-bold">ResearchGPT</span>
+          </Link>
           <nav>
-            <ul className="flex space-x-6">
-              <li>
-                <Link href="/" className="hover:text-blue-500">首页</Link>
-              </li>
-              <li>
-                <Link href="/search" className="hover:text-blue-500">研究探索</Link>
-              </li>
-              <li>
-                <Link href="/paper" className="hover:text-blue-500">AI论文生成</Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-blue-500">关于</Link>
-              </li>
+            <ul className="flex space-x-4 md:space-x-6 items-center">
+              <li><Link href="/" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">首页</Link></li>
+              <li><Link href="/search" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">研究探索</Link></li>
+              <li><Link href="/paper" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">AI论文生成</Link></li>
+              <li><Link href="/about" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">关于</Link></li>
             </ul>
           </nav>
         </div>
       </header>
 
       {/* 主内容区 */}
-      <main className="flex-grow container mx-auto py-8 px-4">
+      <main className="flex-grow container mx-auto py-12 px-6">
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="flex justify-center items-center h-80">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+            <p className="ml-4 text-lg text-gray-600">正在生成研究计划...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+          <div className="bg-white rounded-xl shadow-lg p-8 md:p-10 border border-gray-100">
             {isEditing ? (
-              <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                <h3 className="text-xl font-semibold mb-4">编辑研究计划</h3>
-                <div className="mb-4">
-                  <label className="block text-gray-700 mb-2">研究主题</label>
-                  <input 
-                    type="text" 
-                    value={title} 
+              <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-8">
+                <h3 className="text-xl font-semibold mb-5 text-gray-800">编辑研究主题</h3>
+                <div className="mb-5">
+                  <label htmlFor="edit-title" className="block text-gray-700 mb-2 font-medium">新的研究主题</label>
+                  <input
+                    id="edit-title"
+                    type="text"
+                    value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="输入新的研究主题"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                <div className="flex justify-end space-x-4">
-                  <button 
-                    onClick={() => setIsEditing(false)} 
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors duration-200"
                   >
                     取消
                   </button>
-                  <button 
-                    onClick={updatePlan} 
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                  <button
+                    onClick={updatePlan}
+                    disabled={isLoading}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center"
                   >
-                    更新计划
+                    {isLoading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        更新中...
+                      </>
+                    ) : (
+                      '确认更新计划'
+                    )}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-bold">{title}</h2>
-                <button 
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-4 border-b border-gray-200">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-0">{title}</h2>
+                <button
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center hover:bg-blue-600 transition-colors"
+                  className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg flex items-center hover:bg-indigo-200 transition-colors text-sm font-medium"
                 >
-                  <span className="mr-2">✏️</span> 编辑计划
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  编辑主题
                 </button>
               </div>
             )}
 
             {plan && (
-              <div className="space-y-8">
-                <div>
-                  <p className="text-gray-700 mb-4">{plan.description}</p>
+              <div className="space-y-10">
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+                  <p className="text-gray-700 mb-5 leading-relaxed">{plan.description}</p>
                   <div className="flex flex-wrap gap-2">
-                    {/* 确保tags存在并且是数组才使用map */}
-                    {plan.tags && Array.isArray(plan.tags) ? (
+                    {plan.tags && Array.isArray(plan.tags) && plan.tags.length > 0 ? (
                       plan.tags.map((tag, index) => (
-                        <span key={index} className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                        <span key={index} className="bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1.5 rounded-full">
                           {tag}
                         </span>
                       ))
                     ) : (
-                      <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
-                        研究
+                      <span className="bg-gray-100 text-gray-800 text-xs font-medium px-3 py-1.5 rounded-full">
+                        综合研究
                       </span>
                     )}
                   </div>
                 </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">研究背景</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-700">{plan.background}</p>
+
+                {[
+                  { title: '研究背景', content: plan.background },
+                  { title: '文献综述', content: plan.literature },
+                  { title: '研究方法', content: plan.methodology },
+                  { title: '预期成果', content: plan.expected_outcomes },
+                  { title: '所需资源', content: plan.resources },
+                ].map((section) => (
+                  <div key={section.title}>
+                    <h3 className="text-xl font-semibold mb-3 text-gray-800">{section.title}</h3>
+                    <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+                      <p className="text-gray-700 leading-relaxed">{section.content || '内容待生成...'}</p>
+                    </div>
                   </div>
-                </div>
-                
+                ))}
+
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">研究目标</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <ul className="list-disc pl-5 space-y-2">
-                      {/* 确保objectives存在且是数组 */}
-                      {plan.objectives && Array.isArray(plan.objectives) ? (
+                  <h3 className="text-xl font-semibold mb-3 text-gray-800">研究目标</h3>
+                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+                    <ul className="list-decimal pl-5 space-y-2">
+                      {plan.objectives && Array.isArray(plan.objectives) && plan.objectives.length > 0 ? (
                         plan.objectives.map((objective, index) => (
-                          <li key={index} className="text-gray-700">{objective}</li>
+                          <li key={index} className="text-gray-700 leading-relaxed">{objective}</li>
                         ))
                       ) : (
-                        <li className="text-gray-700">完成研究目标</li>
+                        <li className="text-gray-500 italic">暂无具体目标</li>
                       )}
                     </ul>
                   </div>
                 </div>
-                
+
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">文献综述</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-700">{plan.literature}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">研究方法</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-700">{plan.methodology}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">预期成果</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-700">{plan.expected_outcomes}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">研究时间线</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="space-y-4">
-                      {/* 确保timeline存在且是数组 */}
-                      {plan.timeline && Array.isArray(plan.timeline) ? (
+                  <h3 className="text-xl font-semibold mb-3 text-gray-800">研究时间线</h3>
+                  <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+                    <div className="space-y-6">
+                      {plan.timeline && Array.isArray(plan.timeline) && plan.timeline.length > 0 ? (
                         plan.timeline.map((phase, index) => (
-                          <div key={index} className="border-l-4 border-blue-500 pl-4">
-                            <h4 className="font-medium text-lg">{phase.phase} <span className="text-gray-500 text-sm">({phase.duration})</span></h4>
-                            <p className="text-gray-700">{phase.activities}</p>
+                          <div key={index} className="relative pl-8 pb-4 border-l-2 border-blue-300 last:border-l-transparent last:pb-0">
+                             <div className="absolute -left-[11px] top-0 h-5 w-5 rounded-full bg-blue-500 ring-4 ring-white"></div>
+                            <h4 className="font-medium text-lg text-gray-900">{phase.phase}</h4>
+                            <p className="text-sm text-gray-500 mb-1">{phase.duration}</p>
+                            <p className="text-gray-700 leading-relaxed">{phase.activities}</p>
                           </div>
                         ))
                       ) : (
-                        <div className="border-l-4 border-blue-500 pl-4">
-                          <h4 className="font-medium text-lg">研究阶段 <span className="text-gray-500 text-sm">(3-6个月)</span></h4>
-                          <p className="text-gray-700">进行研究活动</p>
-                        </div>
+                         <p className="text-gray-500 italic">暂无时间线规划</p>
                       )}
                     </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">所需资源</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-gray-700">{plan.resources}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 在研究计划内容后添加操作按钮 */}
-            <div className="flex space-x-4 mt-8">
+            <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => setShowChat(true)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg flex items-center hover:bg-blue-600 transition-colors"
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors duration-200 font-medium"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-                讨论研究计划
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                讨论此计划
               </button>
-              
+
               <button
                 onClick={generatePaperFromPlan}
                 disabled={isGeneratingPaper}
-                className="group relative px-4 py-2 bg-green-500 text-white rounded-lg flex items-center hover:bg-green-600 transition-colors"
+                className="group relative flex-1 px-6 py-3 bg-green-600 text-white rounded-lg flex items-center justify-center hover:bg-green-700 transition-colors duration-200 font-medium"
               >
                 {isGeneratingPaper ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    正在生成论文...
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    论文生成中...
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    基于此计划生成论文
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    生成 LaTeX 论文
                   </>
                 )}
-                <div className="absolute invisible group-hover:visible bg-black text-white text-sm rounded p-2 -top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                  将生成LaTeX格式论文，可在Overleaf中编辑
+                <div className="absolute invisible group-hover:visible bg-black text-white text-xs rounded py-1 px-2 -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                  基于此计划生成论文初稿
                 </div>
               </button>
             </div>
@@ -682,111 +658,116 @@ ${lastAIMessage}
 
       {/* 对话框 */}
       {showChat && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl w-full max-w-2xl h-[600px] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-xl font-semibold">研究计划讨论</h3>
-              <button 
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[75vh] max-h-[800px] flex flex-col shadow-2xl">
+            <div className="p-5 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+              <h3 className="text-lg font-semibold text-gray-800">讨论研究计划</h3>
+              <button
                 onClick={() => setShowChat(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-white">
               {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.type === 'user'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {message.content}
+                <div key={index} className={`flex flex-col ${message.type === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[85%] rounded-lg px-4 py-2 shadow-sm ${message.type === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'}`}>
+                    {message.type === 'ai' ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        className="prose prose-sm max-w-none"
+                        components={{
+                          a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline"/>,
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    )}
                   </div>
+                  {message.type === 'ai' && (
+                    <div className="mt-2 text-right w-full max-w-[85%]">
+                      <button
+                        onClick={() => modifyPlanBasedOnSuggestion(message.content)}
+                        disabled={isLoading}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-200 flex items-center ml-auto ${
+                          isLoading
+                           ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                           : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                         }`}
+                        title="根据这条建议更新研究计划"
+                      >
+                         {isLoading ? (
+                           <>
+                             <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              处理中...
+                           </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                              按此建议更新
+                            </>
+                          )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
+              <div ref={chatMessagesEndRef} />
             </div>
-            
-            <div className="p-4 border-t">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
+
+            <div className="p-4 border-t bg-gray-50 rounded-b-xl flex-shrink-0">
+              <div className="flex items-center space-x-3">
+                <textarea
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="输入您的问题或建议..."
-                  className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="在此输入您的问题或建议 (Shift+Enter 换行)..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none overflow-y-auto"
+                  rows={1}
+                  style={{ maxHeight: '100px' }}
                 />
                 <button
                   onClick={sendMessage}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  disabled={!chatInput.trim()}
+                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
+                  title="发送消息"
                 >
-                  发送
+                  <svg className="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 16.571V11a1 1 0 112 0v5.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
                 </button>
               </div>
             </div>
-
-            {showModifyButton && (
-              <div className="p-4 bg-blue-50 rounded-lg mt-4">
-                <p className="text-sm text-gray-700 mb-2">AI助手提供了改进建议，是否要更新研究计划？</p>
-                <button
-                  onClick={modifyPlanBasedOnSuggestion}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
-                >
-                  {isLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      更新中...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      根据建议更新计划
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* 底部 */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-4 md:mb-0">
-              <h3 className="text-xl font-bold">ResearchGPT</h3>
-              <p className="text-gray-300">智能研究助手</p>
-            </div>
-            <div className="flex flex-col items-end">
-              <p>© {new Date().getFullYear()} ResearchGPT. 保留所有权利。</p>
-              <div className="mt-2 text-sm">
-                <Link href="/about" className="text-gray-300 hover:text-white mr-4">
-                  关于
-                </Link>
-                <Link href="/privacy" className="text-gray-300 hover:text-white">
-                  隐私协议
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <footer className="bg-gray-900 text-gray-300 py-10 mt-16">
+         <div className="container mx-auto px-6">
+           <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+             <div className="mb-6 md:mb-0">
+               <h3 className="text-xl font-bold text-white">ResearchGPT</h3>
+               <p className="text-sm">智能研究，探索无限</p>
+             </div>
+             <div className="flex flex-col items-center md:items-end">
+               <p className="text-sm mb-2">© {new Date().getFullYear()} ResearchGPT. All Rights Reserved.</p>
+               <div className="flex space-x-4">
+                 <Link href="/about" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">关于我们</Link>
+                 <span className="text-gray-500">|</span>
+                 <Link href="/about#privacy" className="text-sm text-gray-400 hover:text-white transition-colors duration-200">隐私政策</Link>
+               </div>
+             </div>
+           </div>
+         </div>
+       </footer>
     </div>
   );
 }

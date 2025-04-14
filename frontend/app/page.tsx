@@ -53,7 +53,7 @@ export default function Home() {
               用AI加速您的学术研究之旅
             </h1>
             <p className="text-lg md:text-xl text-gray-700 mb-10 max-w-3xl mx-auto">
-              从文献分析到论文撰写，ResearchGPT 提供全流程智能支持，助您高效发现、设计与创造。
+              从文献分析到论文撰写，ResearchGPT 提供全流程支持，助您高效发现、设计与创造。
             </p>
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
               <Link href="/search" className="gradient-button text-lg px-8 py-4">
@@ -109,6 +109,84 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* ===== START: 新增示例成果展示区 ===== */}
+        <div className="py-16 md:py-24 bg-gradient-to-b from-gray-50 to-blue-50"> {/* Use a subtle gradient */}
+          <div className="container mx-auto px-6">
+            <h2 className="text-3xl md:text-4xl font-bold mb-16 text-center text-gray-800">示例成果展示</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10"> {/* Changed to 2 columns for clearer separation */}
+
+              {/* Demo: 研究计划 */}
+              <div className="space-y-8">
+                <h3 className="text-2xl font-semibold text-center text-gray-700 mb-6">研究计划示例</h3>
+                {/* Example Idea Card 1 */}
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform transition-transform duration-300 hover:scale-105">
+                  <div className="flex items-center mb-3">
+                    <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-3">💡 Idea</span>
+                    <h4 className="text-lg font-semibold text-gray-900 flex-1">利用联邦学习保护智能医疗数据隐私</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                    探索如何在多方协作的医疗诊断场景中，应用联邦学习技术在不共享原始敏感数据的前提下训练高效的AI模型，同时满足隐私法规要求。
+                  </p>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>标签: 联邦学习, 医疗AI, 数据隐私</span>
+                    <Link href="/plan/利用联邦学习保护智能医疗数据隐私" className="text-blue-600 hover:underline font-medium">查看详情 &rarr;</Link>
+                  </div>
+                </div>
+                {/* Example Idea Card 2 */}
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform transition-transform duration-300 hover:scale-105">
+                  <div className="flex items-center mb-3">
+                     <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-3">💡 Idea</span>
+                    <h4 className="text-lg font-semibold text-gray-900 flex-1">可解释 AI 在金融风控中的应用研究</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                    研究 LIME、SHAP 等可解释性 AI 方法如何应用于复杂的金融信贷审批或欺诈检测模型，以提高模型的透明度、公平性，并满足监管要求。
+                  </p>
+                   <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>标签: 可解释AI, 金融科技, 风险控制</span>
+                    <Link href="/plan/可解释 AI 在金融风控中的应用研究" className="text-blue-600 hover:underline font-medium">查看详情 &rarr;</Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Demo: 生成论文 */}
+               <div className="space-y-8">
+                 <h3 className="text-2xl font-semibold text-center text-gray-700 mb-6">生成论文示例</h3>
+                 {/* Example Paper Card 1 */}
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform transition-transform duration-300 hover:scale-105">
+                  <div className="flex items-center mb-3">
+                    <span className="inline-block bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-3">📄 Paper</span>
+                    <h4 className="text-lg font-semibold text-gray-900 flex-1">面向 6G 通信的智能反射面波束赋形优化算法</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                    摘要片段：本文提出了一种基于深度强化学习的智能反射面(IRS)无源波束赋形优化算法，旨在最大化 6G 毫米波通信系统中的下行链路用户可达速率... (中文, LaTeX 格式)
+                  </p>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                     <span>格式: LaTeX | 语言: 中文</span>
+                     <Link href="/paper?title=面向6G通信的智能反射面波束赋形优化算法&content=\documentclass..." className="text-green-600 hover:underline font-medium">预览片段 &rarr;</Link> {/* 需要有示例内容 */}
+                  </div>
+                </div>
+                 {/* Example Paper Card 2 */}
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform transition-transform duration-300 hover:scale-105">
+                   <div className="flex items-center mb-3">
+                     <span className="inline-block bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-0.5 rounded-full mr-3">📄 Paper</span>
+                    <h4 className="text-lg font-semibold text-gray-900 flex-1">Attentive Hierarchical Graph Neural Networks for Dynamic Multi-Agent Reinforcement Learning</h4>
+                   </div>
+                  <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                     Abstract Snippet: This paper introduces an Attentive Hierarchical Graph Neural Network (AHGNN) architecture designed for complex dynamic multi-agent reinforcement learning (MARL) environments... (English, LaTeX format)
+                  </p>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                     <span>Format: LaTeX | Language: English</span>
+                     <Link href="/paper?title=Attentive Hierarchical Graph Neural Networks...&content=\documentclass..." className="text-green-600 hover:underline font-medium">Preview Snippet &rarr;</Link> {/* Need sample content */}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        {/* ===== END: 新增示例成果展示区 ===== */}
+
       </main>
 
       {/* 底部 */}
