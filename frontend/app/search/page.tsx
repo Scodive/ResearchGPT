@@ -40,13 +40,11 @@ export default function SearchPage() {
 
   // 处理 URL 参数，如果存在 q 参数则自动填充搜索框并触发搜索
   useEffect(() => {
-    /* // Temporarily comment out:
     const queryParam = searchParams.get('q');
     if (queryParam) {
       setSearchQuery(queryParam);
-      // handleSearch(queryParam); // Also comment out the auto-search
+      handleSearch(queryParam);
     }
-    */
   }, [searchParams]);
 
   // 搜索处理函数
