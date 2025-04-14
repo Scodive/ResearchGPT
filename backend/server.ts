@@ -9,7 +9,7 @@ const app = express();
 
 // 中间件
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://your-vercel-app.vercel.app',
+  origin: process.env.FRONTEND_URL,
   credentials: true
 }));
 app.use(express.json());
