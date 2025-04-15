@@ -17,18 +17,11 @@ export default function Privacy() {
           </h1>
           <nav>
             <ul className="flex space-x-6">
-              <li>
-                <Link href="/" className="hover:text-blue-500">首页</Link>
-              </li>
-              <li>
-                <Link href="/search" className="hover:text-blue-500">研究探索</Link>
-              </li>
-              <li>
-                <Link href="/paper" className="hover:text-blue-500">AI论文生成</Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-blue-500">关于</Link>
-              </li>
+              <li><Link href="/" className="hover:text-blue-500">首页</Link></li>
+              <li><Link href="/search" className="hover:text-blue-500">研究探索</Link></li>
+              <li><Link href="/paper" className="hover:text-blue-500">AI论文生成</Link></li>
+              <li><Link href="/diagram" className="hover:text-blue-500">AI图表生成</Link></li>
+              <li><Link href="/about" className="hover:text-blue-500">关于</Link></li>
             </ul>
           </nav>
         </div>

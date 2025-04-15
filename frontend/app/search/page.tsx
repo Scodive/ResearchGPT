@@ -158,8 +158,9 @@ function SearchPage() {
            <nav>
              <ul className="flex space-x-4 md:space-x-6 items-center">
                <li><Link href="/" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">首页</Link></li>
-               <li><Link href="/search" className="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50">研究探索</Link></li> {/* Highlight current page */}
+               <li><Link href="/search" className="px-3 py-2 rounded-md text-sm font-medium text-blue-600 bg-blue-50">研究探索</Link></li>
                <li><Link href="/paper" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">AI论文生成</Link></li>
+               <li><Link href="/diagram" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">AI图表生成</Link></li>
                <li><Link href="/about" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100">关于</Link></li>
              </ul>
            </nav>

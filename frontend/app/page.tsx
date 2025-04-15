@@ -37,6 +37,9 @@ export default function Home() {
                 <Link href="/paper" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100 transition-colors duration-200">AI论文生成</Link>
               </li>
               <li>
+                <Link href="/diagram" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100 transition-colors duration-200">AI图表生成</Link>
+              </li>
+              <li>
                 <Link href="/about" className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-100 transition-colors duration-200">关于</Link>
               </li>
             </ul>
