@@ -7,7 +7,10 @@ import Link from 'next/link';
 // 在组件顶部添加类型声明
 declare global {
   interface Window {
-    mermaid: any;
+    mermaid: {
+      initialize: (config: any) => void;
+      render: (id: string, text: string) => Promise<{ svg: string }>;
+    } | undefined;
   }
 }
 
@@ -268,15 +271,19 @@ export default function DiagramGenerator() {
       const formattedCode = mermaidCode.includes('graph') ? mermaidCode : `graph LR\n${mermaidCode}`;
       
       // 等待mermaid加载完成
-      if (typeof window.mermaid === 'undefined') {
-        await new Promise((resolve) => {
+      if (typeof window !== 'undefined' && !window.mermaid) {
+        await new Promise<void>((resolve) => {
           const checkMermaid = setInterval(() => {
             if (window.mermaid) {
               clearInterval(checkMermaid);
-              resolve(true);
+              resolve();
             }
           }, 100);
         });
+      }
+
+      if (!window.mermaid) {
+        throw new Error('Mermaid库未正确加载');
       }
 
       // 重新初始化mermaid
@@ -336,7 +343,7 @@ export default function DiagramGenerator() {
   useEffect(() => {
     const loadMermaid = async () => {
       try {
-        if (typeof window.mermaid === 'undefined') {
+        if (typeof window !== 'undefined' && !window.mermaid) {
           const script = document.createElement('script');
           script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
           script.async = true;
@@ -348,23 +355,22 @@ export default function DiagramGenerator() {
           });
 
           // 等待mermaid对象加载完成
-          await new Promise((resolve) => {
+          await new Promise<void>((resolve) => {
             const checkMermaid = setInterval(() => {
               if (window.mermaid) {
                 clearInterval(checkMermaid);
-                resolve(true);
+                window.mermaid.initialize({
+                  startOnLoad: true,
+                  theme: 'default',
+                  flowchart: {
+                    useMaxWidth: true,
+                    htmlLabels: true,
+                    curve: 'basis'
+                  }
+                });
+                resolve();
               }
             }, 100);
-          });
-
-          window.mermaid.initialize({
-            startOnLoad: true,
-            theme: 'default',
-            flowchart: {
-              useMaxWidth: true,
-              htmlLabels: true,
-              curve: 'basis'
-            }
           });
         }
       } catch (error) {
