@@ -178,12 +178,37 @@ REQUIREMENTS:
    - Ensure logical flow between sections with proper transitions
 
 4. FORMAT REQUIREMENTS:
+   - IMPORTANT: Document must start with \\documentclass[conference]{IEEEtran} and include these required packages:
+     * \\usepackage{cite}
+     * \\usepackage{amsmath,amssymb,amsfonts}
+     * \\usepackage{algorithmic}
+     * \\usepackage{graphicx}
+     * \\usepackage{textcomp}
+     * \\usepackage{xcolor}
+     * \\usepackage{tikz}
+     * \\usepackage{booktabs}
+     * \\usepackage{array}
+     * \\usetikzlibrary{positioning,shapes.geometric,arrows.meta,fit,calc}
+   - If including TikZ diagrams, MUST ensure correct syntax:
+     * Use \\begin{tikzpicture} and \\end{tikzpicture}
+     * Node positioning with correct syntax like \\node[rectangle, right=1cm of nodeA] (nodeB) {Content};
+     * Any & symbols in text must be written as \\&
+     * Ensure all braces are properly matched
    - Use proper LaTeX commands and IEEE template elements
    - Include \\cite{} commands throughout the text
    - Structure document with appropriate sectioning
-   - Format must be complete and compilable
+   - IMPORTANT: Document must end with \\end{document}
 
-OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or comments about the code itself. Start with \\documentclass and end with \\end{document}.`; 
+5. BIBLIOGRAPHY REQUIREMENTS:
+   - Must include bibliography section at document end using this format:
+     \\begin{thebibliography}{99}
+     \\bibitem{ref1} Author Name, "Paper Title," Journal Name, vol. X, no. Y, pp. ZZ-ZZ, Year.
+     \\bibitem{ref2} Author Name, "Paper Title," Conference Name, pp. XX-XX, Year.
+     ... (at least 15 entries)
+     \\end{thebibliography}
+   - Use \\cite{ref1} etc. for citations in text
+
+OUTPUT FORMAT: Provide ONLY the complete LaTeX code that can be compiled in Overleaf to generate a PDF. Start with \\documentclass and end with \\end{document}. Do NOT include any explanations, comments, or markdown formatting around the code.`;
       
     // --- START: Modify the Chinese Prompt Significantly ---
     const chinesePrompt = `
@@ -199,25 +224,47 @@ OUTPUT FORMAT: Provide ONLY the complete LaTeX code without any explanations or 
     *   \`\\\\begin{IEEEkeywords}\`...\`\\\\end{IEEEkeywords}\`: 5-7个高度相关的中文关键词。
     *   \`\\\\section{引言}\`: 清晰阐述研究背景、问题、动机、研究的重要性和论文的主要贡献概述。
     *   \`\\\\section{相关工作}\` 或 \`\\\\section{文献综述}\`: 对现有相关研究进行全面且批判性的中文分析，明确指出当前研究的不足之处。
-    *   \`\\\\section{研究方法}\` 或 \`\\\\section{模型设计}\`: 详细阐述本文提出的创新方法、模型或框架，需要有充分的细节和 обоснование (理由陈述)。
-    *   \`\\\\section{数学基础}\` 或 \`\\\\section{理论分析}\` (可选但推荐): 如果适用，包含严谨的数学推导或理论分析，至少包含3-4个带有详细中文解释的非平凡数学公式。
+    *   \`\\\\section{研究方法}\` 或 \`\\\\section{模型设计}\`: 详细阐述本文提出的创新方法、模型或框架，需要有充分的细节和理由陈述。
+    *   \`\\\\section{数学基础}\` 或 \`\\\\section{理论分析}\`: 包含严谨的数学推导或理论分析，至少包含3-4个带有详细中文解释的非平凡数学公式。
     *   \`\\\\section{实验设置}\`: 详细描述实验所用的数据集、评价指标、参数设置、对比方法等。
     *   \`\\\\section{实验结果与分析}\`: 展示清晰的实验结果（可以使用\`\\\\begin{table}\`和\`\\\\begin{figure}\`，图表标题和内容必须是中文），并进行深入、细致的中文分析和讨论，与相关工作进行比较。
-    *   \`\\\\section{讨论}\` (可选): 讨论研究的意义、潜在应用、局限性以及对领域的理论贡献。
+    *   \`\\\\section{讨论}\`: 讨论研究的意义、潜在应用、局限性以及对领域的理论贡献。
     *   \`\\\\section{结论与未来工作}\`: 总结论文的核心贡献，并指出未来值得探索的研究方向。
-    *   \`\\\\bibliography{}\` 和 \`\\\\bibliographystyle{IEEEtran}\`: 包含至少15条格式规范（最好是中文或中英混合，但条目本身按IEEE格式）的相关参考文献列表，并在正文中使用 \`\\\\cite{}\` 标记进行引用。
+    *   \`\\\\bibliography{references}\` 和 \`\\\\bibliographystyle{IEEEtran}\`: 包含至少15条格式规范的相关参考文献列表，并在正文中使用 \`\\\\cite{}\` 标记进行引用。
 4.  **技术细节要求：**
-    *   如果论文内容适合，**必须**包含至少一个使用 LaTeX (例如 TikZ, PGFPlots) 绘制的复杂图表或流程图，所有标签和说明文字使用中文。
-    *   **必须**包含至少一个包含具体数据的表格 (\`\\\\begin{table}\`)，所有标签和说明文字使用中文。
+    *   **重要：** 文档必须以 \`\\\\documentclass[conference]{IEEEtran}\` 开始，并包含以下必需的包：
+        - \`\\\\usepackage{cite}\`
+        - \`\\\\usepackage{amsmath,amssymb,amsfonts}\`
+        - \`\\\\usepackage{algorithmic}\`
+        - \`\\\\usepackage{graphicx}\`
+        - \`\\\\usepackage{textcomp}\`
+        - \`\\\\usepackage{xcolor}\`
+        - \`\\\\usepackage{tikz}\`
+        - \`\\\\usepackage{booktabs}\`
+        - \`\\\\usepackage{array}\`
+        - \`\\\\usetikzlibrary{positioning,shapes.geometric,arrows.meta,fit,calc}\`
+    *   如果包含 TikZ 图表，**必须**确保语法正确：
+        - 使用 \`\\\\begin{tikzpicture}\` 和 \`\\\\end{tikzpicture}\`
+        - 节点定位使用正确语法，如 \`\\\\node[rectangle, right=1cm of nodeA] (nodeB) {内容};\`
+        - 文字中的 & 符号必须写成 \`\\\\&\`
+        - 确保所有花括号正确配对
+    *   **必须**包含至少一个包含具体数据的表格，所有标签和说明文字使用中文。
     *   **必须**使用严谨、规范的中文学术语言和相关领域的专业术语。
     *   在方法论或分析部分，合理地穿插使用数学符号和公式。
-5.  **LaTeX 格式要求：**
-    *   提供完整、无误、可以直接编译的 LaTeX 代码。
-    *   使用标准的 LaTeX 命令和 IEEE 模板所需的宏包 (例如 \`\\\\documentclass[conference]{IEEEtran}\`, \`amsmath\`, \`graphicx\`, \`\\\\cite{}\` 等)。
-    *   确保文档结构清晰，章节编号正确。
+    *   **重要：** 文档必须以 \`\\\\end{document}\` 结尾。
+5.  **参考文献要求：**
+    *   必须在文档末尾添加参考文献部分，格式如下：
+        \`\`\`
+        \\\\begin{thebibliography}{99}
+        \\\\bibitem{ref1} 作者姓名, "论文标题", 期刊名称, vol. X, no. Y, pp. ZZ-ZZ, 年份.
+        \\\\bibitem{ref2} 作者姓名, "论文标题", 会议名称, pp. XX-XX, 年份.
+        ... (至少15个条目)
+        \\\\end{thebibliography}
+        \`\`\`
+    *   在正文中使用 \`\\\\cite{ref1}\` 等进行引用。
 
 **输出格式：**
-请**只**输出完整的 LaTeX 源代码文本，从 \`\\\\documentclass\` 开始，到 \`\\\\end{document}\` 结束。不要在代码前后或代码中添加任何额外的解释、评论、说明性文字或 markdown 标记（如 \\\`\\\`\\\`latex）。
+请**只**输出完整的 LaTeX 源代码文本，从 \`\\\\documentclass\` 开始，到 \`\\\\end{document}\` 结束。确保代码能够在 Overleaf 中成功编译生成PDF。不要在代码前后或代码中添加任何额外的解释、评论、说明性文字或 markdown 标记。
 `;
     // --- END: Modify the Chinese Prompt Significantly ---
     
