@@ -77,7 +77,7 @@ export default function PaperGenerator() {
 
     try {
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-2.0-flash-exp';
+      const MODEL = 'gemini-2.5-flash-preview-05-20';
       const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
       const prompt = generatePrompt(researchTopic, language);

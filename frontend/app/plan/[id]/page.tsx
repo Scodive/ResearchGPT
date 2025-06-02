@@ -108,7 +108,7 @@ export default function PlanDetail() {
     setIsLoading(true);
     
     const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-    const MODEL = 'gemini-2.0-flash-exp';
+    const MODEL = 'gemini-2.5-flash-preview-05-20';
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
     
     // 构建prompt
@@ -202,7 +202,7 @@ export default function PlanDetail() {
     try {
       // 直接调用 Gemini API
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-2.0-flash-exp';
+      const MODEL = 'gemini-2.5-flash-preview-05-20';
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
       
       // 构建更详细的 prompt
@@ -356,7 +356,7 @@ export default function PlanDetail() {
     try {
       // Directly call Gemini API
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-2.0-flash-exp'; // Use 1.5 flash, 2.0 might not exist or cause issues
+      const MODEL = 'gemini-2.5-flash-preview-05-20'; // Use 1.5 flash, 2.0 might not exist or cause issues
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
       const prompt = `作为研究助手，基于以下研究计划回答问题或提供建议：
@@ -405,7 +405,7 @@ export default function PlanDetail() {
 
     try {
       const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-      const MODEL = 'gemini-2.0-flash-exp'; // Use a reliable model for generation
+      const MODEL = 'gemini-2.5-flash-preview-05-20'; // Use a reliable model for generation
       const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
       const prompt = `基于以下原始研究计划和 AI 提供的具体改进建议，生成一个更新后的研究计划JSON对象。

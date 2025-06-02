@@ -97,7 +97,7 @@ function SearchPage() {
   // 使用Gemini API生成研究计划摘要
   async function generateResearchPlans(topic: string): Promise<Plan[]> {
     const API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw';
-    const MODEL = 'gemini-2.0-flash-exp'; // 更新为正确的模型名称
+    const MODEL = 'gemini-2.5-flash-preview-05-20'; // 更新为正确的模型名称
     const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
     const prompt = `针对研究主题 "${topic}"，生成 3 个创新且具体的研究方向计划摘要。每个计划摘要应包含：

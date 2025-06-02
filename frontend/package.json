@@ -9,12 +9,20 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@google/genai": "^0.8.0",
+        "@google/generative-ai": "^0.24.0",
         "@tanstack/react-query": "^5.13.4",
         "axios": "^1.6.2",
         "daisyui": "^4.4.19",
+        "genai": "^0.0.18",
+        "html2canvas": "^1.4.1",
+        "katex": "^0.16.22",
+        "mimetypes": "^0.1.1",
         "next": "14.1.0",
+        "pdfjs-dist": "^5.1.91",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
+        "react-latex-next": "^3.0.0",
         "react-markdown": "^9.0.1",
         "remark-gfm": "^4.0.1",
         "tailwindcss": "^3.4.1"
